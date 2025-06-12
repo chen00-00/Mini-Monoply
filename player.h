@@ -1,15 +1,17 @@
-#ifndef MONOPOLY__
-#define MONOPOLY__
+#ifndef PLAYER__
+#define PLAYER__
 
 #include <iostream>
+#include <vector>
 #include <string>
 
 enum class Status { Normal, InJail, Bankruptcy };
 
+// ===== Player =====
 class Player {
 public:
-    Player(const std::string &name = "nameless") : name_(name), id_(next_id_++) { ++TotalNum_; }
-    ~Player() { --TotalNum_; };
+    Player(const std::string &name = "nameless") : id_(next_id_++), name_(name) {}
+    ~Player() {}
 
     int getId() const { return id_; }
     std::string getName() const { return name_; }
@@ -20,19 +22,20 @@ public:
     Status getStatus() const { return status_; }
     
     void updateLocation(int location) { location_ = location; }
-    void updateMoney(int difference) { money_ += difference; }
     void updateUM(bool isComposite = false) {
         ++num_units_;
         if (isComposite) ++num_cunits_;
     }
     void updateStatus(Status newStat) { status_ = newStat; }
     void bankruptcy() { num_units_ = 0; num_cunits_ = 0; status_ = Status::Bankruptcy; }
+    void receive(int money) { money_ += money; }
+    void pay(Player* player, int payment) { money_ -= payment; player->receive(payment); }
+    void pay(int payment) { money_ -= payment;}
+    
 
-    static int TotalNumPlayers() { return TotalNum_; }
 private:
     static int next_id_;
-    static int TotalNum_;
-    int id_;
+    int id_ = 0;
     std::string name_;
     int location_ = 0;
     int money_ = 30000;
@@ -43,11 +46,33 @@ private:
 };
 
 int Player::next_id_ = 1;
-int Player::TotalNum_ = 0;
 
+// ===== World Player =====
 class worldPlayer {
+public:
+  worldPlayer(){
+    int num_player = 0;
+    std::cin >> num_player;
+    for(int i = 0; i < num_player; ++i) {
+        std::string name;
+        std::cin >> name;
+        players_.push_back(new Player(name));
+    }
+  }
+  ~worldPlayer(){
+    for (auto player : players_) {
+      delete player;
+    }
+  }
 
-
+  Player* playerNow(int index) const {
+    return (index >= 0 && index < players_.size()) ? players_[index] : nullptr;
+  }
+  int getPlayerCount() const {
+    return players_.size(); 
+  }
+private:
+  std::vector<Player*> players_;
 };
 
 #endif
