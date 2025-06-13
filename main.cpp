@@ -7,12 +7,12 @@
 #include <ctime>      // For time()
 
 #include "map.h"
-#include "Player.h"
+#include "player.h"
 
 void clearScreen();
 // Function Prototypes
-void displayBoard(const WorldMap& map, const std::vector<Player*>& players);
-void displayPlayerStatus(const std::vector<Player*>& players, int currentPlayerIndex);
+void displayBoard(const WorldMap& map, const WorldPlayer& players);
+void displayPlayerStatus(const WorldPlayer& players, int currentPlayerIndex);
 int rollDice();
 void handleBuyAction(Player* player, MapUnit* unit);
 void handleUpgradeAction(Player* player, UpgradableUnit* unit);
@@ -23,24 +23,19 @@ int main() {
 
     // 1. Game Setup
     WorldMap worldMap;
-    std::vector<Player*> players;
+
     int numPlayers = 0;
     std::vector<std::string> defaultNames = {"A-Tu", "Little-Mei", "King-Baby", "Mrs.Money"};
 
+    clearScreen();
     // ==================== 處理文字或數字輸入的邏輯 ====================
     std::cout << "How many players?(Maximum:4)...>";
     std::cin >> numPlayers;
-
     // 情況 1: 輸入的是無效內容 (例如文字)
     if (std::cin.fail()) {
-        numPlayers = 1;
+        numPlayers = 1; // 直接創建預設的 1 位玩家，不需再詢問姓名
         std::cin.clear(); // 清除錯誤旗標
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // 忽略緩衝區中的無效輸入
-
-        // 直接創建預設的 1 位玩家，不需再詢問姓名
-        players.push_back(new Player(0, defaultNames[0]));
-        worldMap.getUnit(0)->addPlayerHere(players.back());
-
     }
     // 情況 2: 輸入的是數字
     else {
@@ -60,14 +55,19 @@ int main() {
             std::cout << "Please input player " << i + 1 << "'s name (Default: " << defaultNames[i] << ")...>";
             std::getline(std::cin, name);
 
-            if (name.empty()) {
-                name = defaultNames[i];
+            if (!name.empty()) {
+                defaultNames[i] = name; // 有輸入則替換掉原本的預設名稱
             }
-            players.push_back(new Player(i, name));
-            // 將所有玩家加到起始點 (位置 0)
-            worldMap.getUnit(0)->addPlayerHere(players.back());
         }
     }
+
+    // 透過 WorldPlayer 初始化玩家資料
+    WorldPlayer players(numPlayers, defaultNames);
+    // 將所有玩家加到起始點 (位置 0)
+    for (int i = 0; i < numPlayers; ++i) {
+        worldMap.getUnit(0)->addPlayerHere(players.playerNow(i));
+    }
+
     clearScreen();
 
     // --- Initial Game State Display ---
@@ -78,8 +78,8 @@ int main() {
     int currentPlayerIndex = 0;
     int activePlayers = numPlayers;
 
-    while (activePlayers > 1) {
-        Player* currentPlayer = players[currentPlayerIndex];
+    while (1) {
+        Player* currentPlayer = players.playerNow(currentPlayerIndex);
 
         if (currentPlayer->getStatus() == PlayerStatus::Bankrupt) {
             currentPlayerIndex = (currentPlayerIndex + 1) % numPlayers;
@@ -124,14 +124,13 @@ int main() {
         displayBoard(worldMap, players);
         displayPlayerStatus(players, currentPlayerIndex);
 
-        std::cout << currentPlayer->getName() << " moved to " << currentUnit->getName() << std::endl;
 
         currentUnit->onVisit(currentPlayer);
         handleBuyAction(currentPlayer, currentUnit);
 
         // Check for bankruptcy
         if (currentPlayer->getMoney() < 0) {
-            std::cout << currentPlayer->getName() << " is bankrupt!" << std::endl;
+            std::cout << std::endl << currentPlayer->getName() << " is bankrupt!";
             currentPlayer->declareBankruptcy();
             currentPlayer->releaseAllUnits();
             activePlayers--;
@@ -142,25 +141,21 @@ int main() {
         // Move to the next player
         currentPlayerIndex = (currentPlayerIndex + 1) % numPlayers;
 
+        if (activePlayers == 1) {
+            break;
+        }
+
         // Display board for the next turn
         clearScreen();
         displayBoard(worldMap, players);
         displayPlayerStatus(players, currentPlayerIndex);
     }
-/*
-    // 8. Announce Winner
-    for(Player* p : players) {
-        if(p->getStatus() != PlayerStatus::Bankrupt) {
-            std::cout << "\nGame Over! The winner is " << p->getName() << "!" << std::endl;
-            break;
-        }
-    }
 
-    // Cleanup
-    for (Player* p : players) {
-        delete p;
-    }
-*/
+    // 8. Announce Winner
+    std::cout << "The winner is determined!";
+
+
+
     return 0;
 }
 
@@ -190,7 +185,7 @@ void handleBuyAction(Player* player, MapUnit* unit) {
             if (buy_choice != "2") {
                 player->pay(price);
                 player->addUnit(unit);
-                std::cout << "You pay $" << price << " to buy " << unit->getName() << std::endl;
+                std::cout << "You pay $" << price << " to buy " << unit->getName();
             }
         }
     }
@@ -206,46 +201,26 @@ void handleUpgradeAction(Player* player, UpgradableUnit* unit) {
     if (unit->getLevel() < 5) { // Maximum level is 5
         int upgrade_price = unit->getUpgradePrice();
         if (player->getMoney() >= upgrade_price) {
-             std::cout << "You own " << unit->getName() << " (Lv." << unit->getLevel() << "). Upgrade to Lv." << (unit->getLevel() + 1) << " costs $" << upgrade_price << std::endl;
-             std::cout << "Do you want to upgrade? (1:Yes [default] / 2:No)...>";
+             std::cout << player->getName() << ", do you want to upgrade " << unit->getName() << "? (1: Yes [default] / 2: No)...>";
              std::string upgrade_choice;
              std::getline(std::cin, upgrade_choice);
              if(upgrade_choice != "2") {
                 player->pay(upgrade_price);
                 unit->upgrade();
-                std::cout << player->getName() << " upgraded " << unit->getName() << " to Lv." << unit->getLevel() << std::endl;
+                std::cout << "You pay $" <<unit->getUpgradePrice() << " to upgrade " << unit->getName() << " to Lv." << unit->getLevel();
              }
         }
     }
-}
-
-std::string getUnitDetailsString(MapUnit* unit) {
-    std::stringstream ss;
-    Player* owner = unit->getHost();
-
-    // 如果地產被擁有
-    if (owner) {
-        ss << "{" << owner->getId() << "} ";
-        // 檢查是否為可升級單位
-        if (UpgradableUnit* u_unit = dynamic_cast<UpgradableUnit*>(unit)) {
-            ss << "U$ " << std::left << std::setw(5) << u_unit->getFine()
-               << "L" << u_unit->getLevel();
-        } else { // 其他類型（如 C, R），繼續顯示購買價
-            ss << "B$ " << std::left << std::setw(8) << unit->getPrice();
-        }
+    else { // 如果 unit->getLevel() 等於 5，執行此處
+        std::cout << player->getName() << ", your " << unit->getName() << " already reaches the highest level!";
     }
-    // 如果地產未被擁有
-    else {
-        ss << "B$ " << std::left << std::setw(8) << unit->getPrice();
-    }
-    return ss.str();
 }
 
 
-void displayBoard(const WorldMap& map, const std::vector<Player*>& players) {
+void displayBoard(const WorldMap& map, const WorldPlayer& players) {
     if (map.getUnitCount() == 0) return;
 
-    const int n_players = players.size();
+    const int n_players = players.getPlayerCount();
     int half_size = (map.getUnitCount() + 1) / 2;
 
     for (int i = 0; i < half_size; ++i) {
@@ -257,16 +232,18 @@ void displayBoard(const WorldMap& map, const std::vector<Player*>& players) {
 
         // --- 1. 準備玩家位置軌道字串 ---
         std::string left_track(n_players, ' ');
-        for (const auto& p : players) {
-            if (p->getStatus() != PlayerStatus::Bankrupt && p->getLocation() == left_id) {
+        for (int j = 0; j < n_players; ++j) {
+            Player* p = players.playerNow(j);
+            if (p->getLocation() == left_id) {
                 left_track[p->getId()] = std::to_string(p->getId())[0];
             }
         }
 
         std::string right_track(n_players, ' ');
         if (right_unit) {
-            for (const auto& p : players) {
-                if (p->getStatus() != PlayerStatus::Bankrupt && p->getLocation() == right_id) {
+            for (int j = 0; j < n_players; ++j) {
+                Player* p = players.playerNow(j);
+                if (p->getLocation() == right_id) {
                     right_track[p->getId()] = std::to_string(p->getId())[0];
                 }
             }
@@ -281,11 +258,23 @@ void displayBoard(const WorldMap& map, const std::vector<Player*>& players) {
         std::stringstream left_info_ss;
         if (left_unit->getHost() == nullptr) {
             left_info_ss << "B$ " << left_unit->getPrice();
-        } else {
+        }
+        else {
             if (UpgradableUnit* u_unit = dynamic_cast<UpgradableUnit*>(left_unit)) {
-                left_info_ss << "U$ " << u_unit->getUpgradePrice() << " L" << u_unit->getLevel();
-            } else { // 處理其他類型如 C, R 的地產
-                left_info_ss << "Owned";
+                if (u_unit->getLevel() == 5) {
+                    left_info_ss << "L5"; // 等級為 5 時，只顯示 L5
+                }
+                else {
+                    // 維持原樣
+                    left_info_ss << "U$" << std::setw(5) << std::right << u_unit->getUpgradePrice() << " L" << u_unit->getLevel();
+                }
+            }
+            // ==================== 新增的 C 類型土地處理邏輯 ====================
+            else if (CollectableUnit* c_unit = dynamic_cast<CollectableUnit*>(left_unit)) {
+                left_info_ss << "x" << c_unit->getHost()->getNumCollectableUnits();
+            }
+            else { // 處理其他類型如 C, R 的地產
+                left_info_ss << "?";
             }
         }
 
@@ -297,11 +286,23 @@ void displayBoard(const WorldMap& map, const std::vector<Player*>& players) {
             }
             if (right_unit->getHost() == nullptr) {
                 right_info_ss << "B$ " << right_unit->getPrice();
-            } else {
+            }
+            else {
                 if (UpgradableUnit* u_unit = dynamic_cast<UpgradableUnit*>(right_unit)) {
-                    right_info_ss << "U$ " << u_unit->getUpgradePrice() << " L" << u_unit->getLevel();
-                } else {
-                    right_info_ss << "Owned";
+                    if (u_unit->getLevel() == 5) {
+                        right_info_ss << "L5"; // 等級為 5 時，只顯示 L5
+                    }
+                    else {
+                        // 維持原樣
+                        right_info_ss << "U$" <<  std::setw(5) << std::right << u_unit->getUpgradePrice() << " L" << u_unit->getLevel();
+                    }
+                }
+                // ==================== 新增的 C 類型土地處理邏輯 ====================
+                else if (CollectableUnit* c_unit = dynamic_cast<CollectableUnit*>(right_unit)) {
+                    right_info_ss << "x" << c_unit->getHost()->getNumCollectableUnits();
+                }
+                else {
+                    right_info_ss << "?";
                 }
             }
         }
@@ -309,7 +310,7 @@ void displayBoard(const WorldMap& map, const std::vector<Player*>& players) {
         // --- 4. 最終輸出排版 ---
         // 左半邊
         std::cout << "=" << std::setw(n_players) << std::left << left_track << "=  "
-                  << "[" << left_id << "] "
+                  << "[" << left_id << "]"
                   << std::setw(10) << std::right << left_unit->getName() // 名稱佔 10 格
                   << " " << std::setw(4) << std::left << left_owner_ss.str()   // 擁有者佔 5 格
                   << std::setw(14) << std::left << left_info_ss.str();  // 詳細資訊佔 12 格
@@ -318,7 +319,7 @@ void displayBoard(const WorldMap& map, const std::vector<Player*>& players) {
         if (right_unit) {
             std::cout << "="
                       << std::setw(n_players) << std::left << right_track << "=  "
-                      << "[" << right_id << "] "
+                      << "[" << right_id << "]"
                       << std::setw(10) << std::right << right_unit->getName()
                       << " " << std::setw(4) << std::left << right_owner_ss.str()
                       << std::setw(12) << std::left << right_info_ss.str();
@@ -330,20 +331,19 @@ void displayBoard(const WorldMap& map, const std::vector<Player*>& players) {
 
 
 
-void displayPlayerStatus(const std::vector<Player*>& players, int currentPlayerIndex) {
+void displayPlayerStatus(const WorldPlayer& players, int currentPlayerIndex) {
     std::cout << std::endl;
-    for (int i = 0; i < players.size(); ++i) {
-        const auto& p = players[i];
+    for (int i = 0; i < players.getPlayerCount(); ++i) {
+        const auto* p = players.playerNow(i);
         if (p->getStatus() == PlayerStatus::Bankrupt) {
-            std::cout << "   [" << p->getId() << "] " << std::setw(12) << std::left << p->getName() << "is BANKRUPT" << std::endl;
             continue;
         }
 
         if (i == currentPlayerIndex) std::cout << "=>";
         else std::cout << "  ";
 
-        std::cout << "[" << p->getId() << "] " << std::setw(12) << std::left << p->getName()
-                  << "$" << std::setw(8) << std::left << p->getMoney()
+        std::cout << "[" << p->getId() << "] " << std::setw(16) << std::right << p->getName()
+                  << "  $" << std::setw(6) << std::left << p->getMoney()
                   << "with " << p->getUnitCount() << " units" << std::endl;
     }
     std::cout << std::endl;

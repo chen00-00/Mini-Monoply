@@ -1,6 +1,8 @@
-#include "Player.h"
+#include "player.h"
 #include "map.h" // Include map.h to get full definition of MapUnit
 
+
+// ================== Player ==================
 Player::Player(int id, const std::string& name) : id_(id), name_(name) {}
 
 int Player::getId() const { return id_; }
@@ -21,8 +23,13 @@ int Player::getNumCollectableUnits() const {
     return count;
 }
 
-void Player::pay(int amount) {
+int Player::pay(int amount) {
+    int payment = amount;
+    if (money_ < amount) {
+        payment = money_;
+    }
     money_ -= amount;
+    return payment;
 }
 
 void Player::receive(int amount) {
@@ -64,5 +71,25 @@ void Player::releaseFromJail() {
 
 void Player::declareBankruptcy() {
     status_ = PlayerStatus::Bankrupt;
-    money_ = 0;
+    Player::releaseAllUnits();
+}
+
+// ================== World Player ==================
+WorldPlayer::WorldPlayer(int num_player, std::vector<std::string>& Names){
+    for(int i = 0; i < num_player; ++i) {
+        players_.push_back(new Player(i, Names[i]));
+    }
+}
+WorldPlayer::~WorldPlayer(){
+    for (auto player : players_) {
+        delete player;
+    }
+}
+
+Player* WorldPlayer::playerNow(int index) const {
+    return (index >= 0 && index < players_.size()) ? players_[index] : nullptr;
+}
+
+int WorldPlayer::getPlayerCount() const {
+    return players_.size();
 }
