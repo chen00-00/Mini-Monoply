@@ -1,5 +1,5 @@
 #include "map.h"
-#include "Player.h" // Needed for onVisit implementations
+#include "player.h" // Needed for onVisit implementations
 #include <fstream>
 #include <sstream>
 #include <iostream>

@@ -7,12 +7,12 @@
 #include <ctime>      // For time()
 
 #include "map.h"
-#include "Player.h"
+#include "player.h"
 
 void clearScreen();
 // Function Prototypes
-void displayBoard(const WorldMap& map, const std::vector<Player*>& players);
-void displayPlayerStatus(const std::vector<Player*>& players, int currentPlayerIndex);
+void displayBoard(const WorldMap& map, const WorldPlayer& players);
+void displayPlayerStatus(const WorldPlayer& players, int currentPlayerIndex);
 int rollDice();
 void handleBuyAction(Player* player, MapUnit* unit);
 void handleUpgradeAction(Player* player, UpgradableUnit* unit);
@@ -23,51 +23,51 @@ int main() {
 
     // 1. Game Setup
     WorldMap worldMap;
-    std::vector<Player*> players;
+    
     int numPlayers = 0;
     std::vector<std::string> defaultNames = {"A-Tu", "Little-Mei", "King-Baby", "Mrs.Money"};
 
-    // ==================== ³B²z¤å¦r©Î¼Æ¦r¿é¤JªºÅŞ¿è ====================
+    clearScreen();
+    // ==================== è™•ç†æ–‡å­—æˆ–æ•¸å­—è¼¸å…¥çš„é‚è¼¯ ====================
     std::cout << "How many players?(Maximum:4)...>";
     std::cin >> numPlayers;
-
-    // ±¡ªp 1: ¿é¤Jªº¬OµL®Ä¤º®e (¨Ò¦p¤å¦r)
+    // æƒ…æ³ 1: è¼¸å…¥çš„æ˜¯ç„¡æ•ˆå…§å®¹ (ä¾‹å¦‚æ–‡å­—)
     if (std::cin.fail()) {
-        numPlayers = 1;
-        std::cin.clear(); // ²M°£¿ù»~ºX¼Ğ
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // ©¿²¤½w½Ä°Ï¤¤ªºµL®Ä¿é¤J
-
-        // ª½±µ³Ğ«Ø¹w³]ªº 1 ¦ìª±®a¡A¤£»İ¦A¸ß°İ©m¦W
-        players.push_back(new Player(0, defaultNames[0]));
-        worldMap.getUnit(0)->addPlayerHere(players.back());
-
+        numPlayers = 1; // ç›´æ¥å‰µå»ºé è¨­çš„ 1 ä½ç©å®¶ï¼Œä¸éœ€å†è©¢å•å§“å
+        std::cin.clear(); // æ¸…é™¤éŒ¯èª¤æ——æ¨™
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // å¿½ç•¥ç·©è¡å€ä¸­çš„ç„¡æ•ˆè¼¸å…¥
     }
-    // ±¡ªp 2: ¿é¤Jªº¬O¼Æ¦r
+    // æƒ…æ³ 2: è¼¸å…¥çš„æ˜¯æ•¸å­—
     else {
-        // ±Nª±®a¤H¼Æ­­¨î¦b 1 ¨ì 4 ¤§¶¡
+        // å°‡ç©å®¶äººæ•¸é™åˆ¶åœ¨ 1 åˆ° 4 ä¹‹é–“
         if (numPlayers > 4) {
             numPlayers = 4;
         } else if (numPlayers < 1) {
             numPlayers = 1;
         }
 
-        // ¦b¨Ï¥Î getline ¤§«e¡A²M°£¿é¤J½w½Ä°Ï¤¤¥i¯à´İ¯dªº´«¦æ²Å
+        // åœ¨ä½¿ç”¨ getline ä¹‹å‰ï¼Œæ¸…é™¤è¼¸å…¥ç·©è¡å€ä¸­å¯èƒ½æ®˜ç•™çš„æ›è¡Œç¬¦
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-        // ®Ú¾Úª±®a¤H¼Æ¡A´`Àô¸ß°İ©m¦W
+        // æ ¹æ“šç©å®¶äººæ•¸ï¼Œå¾ªç’°è©¢å•å§“å
         for (int i = 0; i < numPlayers; ++i) {
             std::string name;
             std::cout << "Please input player " << i + 1 << "'s name (Default: " << defaultNames[i] << ")...>";
             std::getline(std::cin, name);
 
-            if (name.empty()) {
-                name = defaultNames[i];
+            if (!name.empty()) {
+                defaultNames[i] = name; // æœ‰è¼¸å…¥å‰‡æ›¿æ›æ‰åŸæœ¬çš„é è¨­åç¨±
             }
-            players.push_back(new Player(i, name));
-            // ±N©Ò¦³ª±®a¥[¨ì°_©lÂI (¦ì¸m 0)
-            worldMap.getUnit(0)->addPlayerHere(players.back());
         }
     }
+    
+    // é€é WorldPlayer åˆå§‹åŒ–ç©å®¶è³‡æ–™
+    WorldPlayer players(numPlayers, defaultNames);
+    // å°‡æ‰€æœ‰ç©å®¶åŠ åˆ°èµ·å§‹é» (ä½ç½® 0)
+    for (int i = 0; i < numPlayers; ++i) {
+        worldMap.getUnit(0)->addPlayerHere(players.playerNow(i));
+    }
+
     clearScreen();
 
     // --- Initial Game State Display ---
@@ -79,7 +79,7 @@ int main() {
     int activePlayers = numPlayers;
 
     while (activePlayers > 1) {
-        Player* currentPlayer = players[currentPlayerIndex];
+        Player* currentPlayer = players.playerNow(currentPlayerIndex);
 
         if (currentPlayer->getStatus() == PlayerStatus::Bankrupt) {
             currentPlayerIndex = (currentPlayerIndex + 1) % numPlayers;
@@ -119,7 +119,7 @@ int main() {
 
         MapUnit* currentUnit = worldMap.getUnit(newLocation);
 
-        // ¥ıÅã¥Ü²¾°Ê«áªº¹CÀ¸½L­±
+        // å…ˆé¡¯ç¤ºç§»å‹•å¾Œçš„éŠæˆ²ç›¤é¢
         clearScreen();
         displayBoard(worldMap, players);
         displayPlayerStatus(players, currentPlayerIndex);
@@ -156,17 +156,13 @@ int main() {
         }
     }
 
-    // Cleanup
-    for (Player* p : players) {
-        delete p;
-    }
 */
     return 0;
 }
 
-/* ²M°£¥D±±¥x¿Ã¹õ */
+/* æ¸…é™¤ä¸»æ§å°è¢å¹• */
 void clearScreen() {
-    system("cls");
+    system("clear");
 }
 
 int rollDice() {
@@ -223,18 +219,18 @@ std::string getUnitDetailsString(MapUnit* unit) {
     std::stringstream ss;
     Player* owner = unit->getHost();
 
-    // ¦pªG¦a²£³Q¾Ö¦³
+    // å¦‚æœåœ°ç”¢è¢«æ“æœ‰
     if (owner) {
         ss << "{" << owner->getId() << "} ";
-        // ÀË¬d¬O§_¬°¥i¤É¯Å³æ¦ì
+        // æª¢æŸ¥æ˜¯å¦ç‚ºå¯å‡ç´šå–®ä½
         if (UpgradableUnit* u_unit = dynamic_cast<UpgradableUnit*>(unit)) {
             ss << "U$ " << std::left << std::setw(5) << u_unit->getFine()
                << "L" << u_unit->getLevel();
-        } else { // ¨ä¥LÃş«¬¡]¦p C, R¡^¡AÄ~ÄòÅã¥ÜÁÊ¶R»ù
+        } else { // å…¶ä»–é¡å‹ï¼ˆå¦‚ C, Rï¼‰ï¼Œç¹¼çºŒé¡¯ç¤ºè³¼è²·åƒ¹
             ss << "B$ " << std::left << std::setw(8) << unit->getPrice();
         }
     }
-    // ¦pªG¦a²£¥¼³Q¾Ö¦³
+    // å¦‚æœåœ°ç”¢æœªè¢«æ“æœ‰
     else {
         ss << "B$ " << std::left << std::setw(8) << unit->getPrice();
     }
@@ -242,10 +238,10 @@ std::string getUnitDetailsString(MapUnit* unit) {
 }
 
 
-void displayBoard(const WorldMap& map, const std::vector<Player*>& players) {
+void displayBoard(const WorldMap& map, const WorldPlayer& players) {
     if (map.getUnitCount() == 0) return;
 
-    const int n_players = players.size();
+    const int n_players = players.getPlayerCount();
     int half_size = (map.getUnitCount() + 1) / 2;
 
     for (int i = 0; i < half_size; ++i) {
@@ -255,9 +251,10 @@ void displayBoard(const WorldMap& map, const std::vector<Player*>& players) {
         MapUnit* left_unit = map.getUnit(left_id);
         MapUnit* right_unit = (left_id != right_id) ? map.getUnit(right_id) : nullptr;
 
-        // --- 1. ·Ç³Æª±®a¦ì¸m­y¹D¦r¦ê ---
+        // --- 1. æº–å‚™ç©å®¶ä½ç½®è»Œé“å­—ä¸² ---
         std::string left_track(n_players, ' ');
-        for (const auto& p : players) {
+        for (int j = 0; j < n_players; ++j) {
+            Player* p = players.playerNow(j);
             if (p->getStatus() != PlayerStatus::Bankrupt && p->getLocation() == left_id) {
                 left_track[p->getId()] = std::to_string(p->getId())[0];
             }
@@ -265,14 +262,15 @@ void displayBoard(const WorldMap& map, const std::vector<Player*>& players) {
 
         std::string right_track(n_players, ' ');
         if (right_unit) {
-            for (const auto& p : players) {
+            for (int j = 0; j < n_players; ++j) {
+                Player* p = players.playerNow(j);
                 if (p->getStatus() != PlayerStatus::Bankrupt && p->getLocation() == right_id) {
                     right_track[p->getId()] = std::to_string(p->getId())[0];
                 }
             }
         }
 
-        // --- 2. ·Ç³Æ¥ª°¼¦a²£ªº¦U­Ó¸ê°T°Ï¶ô ---
+        // --- 2. æº–å‚™å·¦å´åœ°ç”¢çš„å„å€‹è³‡è¨Šå€å¡Š ---
         std::stringstream left_owner_ss;
         if (left_unit->getHost() != nullptr) {
             left_owner_ss << "{" << left_unit->getHost()->getId() << "}";
@@ -284,12 +282,12 @@ void displayBoard(const WorldMap& map, const std::vector<Player*>& players) {
         } else {
             if (UpgradableUnit* u_unit = dynamic_cast<UpgradableUnit*>(left_unit)) {
                 left_info_ss << "U$ " << u_unit->getUpgradePrice() << " L" << u_unit->getLevel();
-            } else { // ³B²z¨ä¥LÃş«¬¦p C, R ªº¦a²£
+            } else { // è™•ç†å…¶ä»–é¡å‹å¦‚ C, R çš„åœ°ç”¢
                 left_info_ss << "Owned";
             }
         }
 
-        // --- 3. ·Ç³Æ¥k°¼¦a²£ªº¦U­Ó¸ê°T°Ï¶ô ---
+        // --- 3. æº–å‚™å³å´åœ°ç”¢çš„å„å€‹è³‡è¨Šå€å¡Š ---
         std::stringstream right_owner_ss, right_info_ss;
         if (right_unit) {
             if (right_unit->getHost() != nullptr) {
@@ -306,15 +304,15 @@ void displayBoard(const WorldMap& map, const std::vector<Player*>& players) {
             }
         }
 
-        // --- 4. ³Ì²×¿é¥X±Æª© ---
-        // ¥ª¥bÃä
+        // --- 4. æœ€çµ‚è¼¸å‡ºæ’ç‰ˆ ---
+        // å·¦åŠé‚Š
         std::cout << "=" << std::setw(n_players) << std::left << left_track << "=  "
                   << "[" << left_id << "] "
-                  << std::setw(10) << std::right << left_unit->getName() // ¦WºÙ¦û 10 ®æ
-                  << " " << std::setw(4) << std::left << left_owner_ss.str()   // ¾Ö¦³ªÌ¦û 5 ®æ
-                  << std::setw(14) << std::left << left_info_ss.str();  // ¸Ô²Ó¸ê°T¦û 12 ®æ
+                  << std::setw(10) << std::right << left_unit->getName() // åç¨±ä½” 10 æ ¼
+                  << " " << std::setw(4) << std::left << left_owner_ss.str()   // æ“æœ‰è€…ä½” 5 æ ¼
+                  << std::setw(14) << std::left << left_info_ss.str();  // è©³ç´°è³‡è¨Šä½” 12 æ ¼
 
-        // ¥k¥bÃä
+        // å³åŠé‚Š
         if (right_unit) {
             std::cout << "="
                       << std::setw(n_players) << std::left << right_track << "=  "
@@ -330,10 +328,10 @@ void displayBoard(const WorldMap& map, const std::vector<Player*>& players) {
 
 
 
-void displayPlayerStatus(const std::vector<Player*>& players, int currentPlayerIndex) {
+void displayPlayerStatus(const WorldPlayer& players, int currentPlayerIndex) {
     std::cout << std::endl;
-    for (int i = 0; i < players.size(); ++i) {
-        const auto& p = players[i];
+    for (int i = 0; i < players.getPlayerCount(); ++i) {
+        const auto* p = players.playerNow(i);
         if (p->getStatus() == PlayerStatus::Bankrupt) {
             std::cout << "   [" << p->getId() << "] " << std::setw(12) << std::left << p->getName() << "is BANKRUPT" << std::endl;
             continue;
