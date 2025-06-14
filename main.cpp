@@ -67,6 +67,7 @@ int main() {
         }
     }
 
+    // Create WorldPlayer for manage all players
     WorldPlayer players(numPlayers, defaultNames);
     // Place all players at the starting point (location 0).
     for (int i = 0; i < numPlayers; ++i) {
@@ -90,6 +91,9 @@ int main() {
         // If the current player is bankrupt, skip their turn and move to the next player.
         if (currentPlayer->getStatus() == PlayerStatus::Bankrupt) {
             currentPlayerIndex = (currentPlayerIndex + 1) % numPlayers;
+            clearScreen(); // Clear screen and update display for the next turn.
+            displayBoard(worldMap, players);
+            displayPlayerStatus(players, currentPlayerIndex);
             continue;
         }
 
@@ -124,7 +128,7 @@ int main() {
 
         // Check if the player passed "GO" (crossed the starting point).
         if (newLocation < oldLocation) {
-            int reward = 2000; // Initialize reward to 2000.
+            int reward = /*200*/0; // Initialize reward to 2000.
             std::cout << currentPlayer->getName() << " passed GO and collects $" << reward << "!" << std::endl; // Passing start gives reward
             currentPlayer->receive(reward); // Give the player the reward.
         }
@@ -168,7 +172,7 @@ int main() {
     }
 
     // 8. Announce Winner (This part would typically involve identifying the last active player)
-    std::cout << "The winner is determined!";
+    std::cout << "The winner is determined!" << std::endl;
 
     return 0; // End of the program.
 }
@@ -176,7 +180,7 @@ int main() {
 /* Clear the console screen */
 void clearScreen() {
     // system("cls") is for Windows; use system("clear") for Linux/macOS.
-    system("cls");
+    system("clear");
 }
 
 // Rolls a dice and returns a random number between 1 and 6.
