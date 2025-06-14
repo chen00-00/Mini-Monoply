@@ -100,7 +100,7 @@ int CollectableUnit::getPrice() const { return price_; }
 JailUnit::JailUnit(int id, const std::string& name) : MapUnit(id, name) {}
 
 void JailUnit::onVisit(Player* player) {
-    std::cout << player->getName() << " is visiting the Jail. They will be frozen for one round." << std::endl;
+    std::cout << player->getName() << " is visiting the Jail. He (She) will be frozen for one round.";
     player->setToJail(); // Player is frozen for one round
 }
 
