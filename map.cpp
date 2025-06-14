@@ -3,7 +3,6 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
-#include <algorithm>
 #include <cstdlib>
 #include <string>
 #include <iomanip> 
@@ -18,7 +17,7 @@ void MapUnit::removePlayerHere(Player* p) {
   players_here_ptrs_[p->getId()] = nullptr;
 }
 
-const std::array<Player*, MAX_PLAYERS>& MapUnit::getPlayersHere() const {
+Player* const* MapUnit::getPlayersHere() const {
   return players_here_ptrs_;
 }
 
@@ -208,7 +207,7 @@ void CollectableUnit::reset() { setHost(nullptr); }
 std::string CollectableUnit::display() const {
   std::ostringstream oss;
   oss << PurchasableUnit::display();
-  if(host_) {
+  if (host_) {
     oss << "x" << host_->getNumCollectableUnits();
   }
   return oss.str();
@@ -225,6 +224,14 @@ void JailUnit::onVisit(Player* player) {
 
 std::string JailUnit::type() const { return "J"; }
 
+
+std::string JailUnit::display() const {
+  std::ostringstream oss;
+  oss << MapUnit::display();
+  oss << std::setw(4) << ""; 
+  oss << std::setw(3) << std::left << "J";
+  return oss.str();
+}
 
 // ================== World Map ====================
 WorldMap::WorldMap() {

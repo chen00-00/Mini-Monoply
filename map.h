@@ -3,7 +3,6 @@
 
 #include <string>
 #include <vector>
-#include <memory>
 #include <iostream>
 
 // Forward declare Player class
@@ -15,7 +14,7 @@ class MapUnit {
 protected:
   int id_;
   std::string name_;
-  std::array<Player*, MAX_PLAYERS> players_here_ptrs_ = {};
+  Player* players_here_ptrs_[MAX_PLAYERS] = {};
   std::string getPlayersHereString() const;
 public:
   MapUnit(int id, const std::string& name) : id_(id), name_(name) {}
@@ -32,7 +31,7 @@ public:
 
   void addPlayerHere(Player* p);
   void removePlayerHere(Player* p);
-  const std::array<Player*, MAX_PLAYERS>& getPlayersHere() const;
+  Player* const* getPlayersHere() const;
 };
 
 // ================== Purchasable Unit ====================
@@ -108,6 +107,7 @@ public:
     JailUnit(int id, const std::string& name);
     void onVisit(Player* player) override;
     std::string type() const override;
+    std::string display() const override;
 };
 
 // ================== World Map ====================

@@ -144,7 +144,6 @@ int main() {
 
         // Trigger the onVisit action for the unit the player landed on.
         currentUnit->onVisit(currentPlayer);
-        // Handle actions related to buying or upgrading units.
 
         // Check for bankruptcy after actions.
         if (currentPlayer->getMoney() < 0) { // If player's money falls below zero, they are bankrupt.
@@ -211,7 +210,8 @@ void displayBoard(const WorldMap& map, const WorldPlayer& players) {
     }
     else {
         std::cout << std::setw(40) << std::left << map.getUnit(0)->display();
-        std::cout << std::setw(40) << std::left << map.getUnit(map_size-1)->display() <<  std::endl;
+        std::cout << std::setw(40) << std::left << map.getUnit(map_size-1)->display();
+        std::cout <<  std::endl;
     }
     // Loop through half of the units to display both left and right sides of the board.
     for (int i = 1; i < half_size; ++i) {
