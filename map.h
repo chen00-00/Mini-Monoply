@@ -13,7 +13,7 @@ class Player;
 // ===== MapUnit (base class) =====
 class MapUnit {
 protected:
-  int id_;
+  int id_ = 0;
   std::string name_;
   Player* host_ = nullptr;
   std::vector<Player*> who_is_here_;
@@ -41,10 +41,10 @@ public:
 // ================== Upgradable Unit ====================
 class UpgradableUnit : public MapUnit {
 private:
-  int price_;
-  int upgrade_price_;
-  int fines_[5];
-  int level_;
+  int price_ = 0;
+  int upgrade_price_ = 0;
+  int fines_[5] = {0};
+  int level_ = 0;
 
 public:
   UpgradableUnit(int id, const std::string& name, int price, int upgrade_price, const int* fines);
@@ -63,8 +63,8 @@ public:
 // ================== Random Cost Unit ====================
 class RandomCostUnit : public MapUnit {
 private:
-  int price_;
-  int fine_per_point_;
+  int price_ = 0;
+  int fine_per_point_ = 0;
 
 public:
   RandomCostUnit(int id, const std::string& name, int price, int fine_per_point);
@@ -78,8 +78,8 @@ public:
 // ================== Collectable Unit ====================
 class CollectableUnit : public MapUnit {
 private:
-    int price_;
-    int unit_fine_;
+    int price_ = 0;
+    int unit_fine_ = 0;
 
 public:
     CollectableUnit(int id, const std::string& name, int price, int unit_fine);

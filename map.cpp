@@ -85,7 +85,7 @@ void CollectableUnit::onVisit(Player* player) {
     if (host_ && host_ != player) {
         int num_owned = host_->getNumCollectableUnits();
         int fine = num_owned * unit_fine_; // Fine depends on how many the owner has
-        std::cout << player->getName() << ", you must pay $" << fine << " to Player " << host_->getId() << host_->getName();
+        std::cout << player->getName() << ", you must pay $" << fine << " to Player " << host_->getId() << " (" << host_->getName() << ")";
         int payment = player->pay(fine);
         host_->receive(payment);
     }
