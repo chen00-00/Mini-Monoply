@@ -23,13 +23,13 @@ int Player::getNumCollectableUnits() const {
     return count;
 }
 
-int Player::pay(int amount) {
-    int payment = amount;
-    if (money_ < amount) {
-        payment = money_;
-    }
+// void Player::pay(Player* player, int amount) {
+//     money_ -= payment;
+//     player->receive(payment);
+// }
+
+void Player::pay(int amount) {
     money_ -= amount;
-    return payment;
 }
 
 void Player::receive(int amount) {
@@ -91,5 +91,5 @@ Player* WorldPlayer::playerNow(int index) const {
 }
 
 int WorldPlayer::getPlayerCount() const {
-    return players_.size();
+    return players_.size(); 
 }
