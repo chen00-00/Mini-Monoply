@@ -33,9 +33,9 @@ UpgradableUnit::UpgradableUnit(int id, const std::string& name, int price, int u
 void UpgradableUnit::onVisit(Player* player) {
   if (host_ && host_ != player) {
     int fine = getFine();
-    std::cout << player->getName() << " paid a fine of $" << fine << " to " << host_->getName() << " for visiting " << name_ << std::endl;
-    player->pay(fine);
-    host_->receive(fine);
+    std::cout << player->getName() << ", you must pay $" << fine << " to Player " << host_->getId() << " (" << host_->getName() << ")";
+    int payment = player->pay(fine);
+    host_->receive(payment);
   }
 }
 
@@ -66,9 +66,9 @@ void RandomCostUnit::onVisit(Player* player) {
   if (host_ && host_ != player) {
     int dice = rand() % 6 + 1;
     int total_fine = dice * fine_per_point_;
-    std::cout << player->getName() << " rolled a " << dice << ", paying a fine of $" << total_fine << " to " << host_->getName() << std::endl;
-    player->pay(total_fine);
-    host_->receive(total_fine);
+    std::cout << player->getName() << ", you must pay $" << total_fine << " to Player " << host_->getId() << " (" << host_->getName() << ")";
+    int payment = player->pay(total_fine);
+    host_->receive(payment);
   }
 }
 
@@ -85,10 +85,9 @@ void CollectableUnit::onVisit(Player* player) {
     if (host_ && host_ != player) {
         int num_owned = host_->getNumCollectableUnits();
         int fine = num_owned * unit_fine_; // Fine depends on how many the owner has
-        std::cout << host_->getName() << " owns " << num_owned << " collectable unit(s). "
-                  << player->getName() << " paid a fine of $" << fine << "." << std::endl;
-        player->pay(fine);
-        host_->receive(fine);
+        std::cout << player->getName() << ", you must pay $" << fine << " to Player " << host_->getId() << host_->getName();
+        int payment = player->pay(fine);
+        host_->receive(payment);
     }
 }
 
@@ -101,7 +100,7 @@ int CollectableUnit::getPrice() const { return price_; }
 JailUnit::JailUnit(int id, const std::string& name) : MapUnit(id, name) {}
 
 void JailUnit::onVisit(Player* player) {
-    std::cout << player->getName() << " is visiting the Jail. They will be frozen for one round." << std::endl;
+    std::cout << player->getName() << " is visiting the Jail. He (She) will be frozen for one round.";
     player->setToJail(); // Player is frozen for one round
 }
 

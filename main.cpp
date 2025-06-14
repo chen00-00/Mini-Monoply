@@ -10,7 +10,6 @@
 #include "player.h"
 
 void clearScreen();
-// Function Prototypes
 void displayBoard(const WorldMap& map, const WorldPlayer& players);
 void displayPlayerStatus(const WorldPlayer& players, int currentPlayerIndex);
 int rollDice();
@@ -19,51 +18,58 @@ void handleUpgradeAction(Player* player, UpgradableUnit* unit);
 void waitForEnter();
 
 int main() {
+    // Seed the random number generator using the current time for varied dice rolls.
     srand(time(0));
 
     // 1. Game Setup
+    // Create an instance of the WorldMap, which loads map data from "map.dat".
     WorldMap worldMap;
-    
+
     int numPlayers = 0;
+    // Default names for players, used if the user doesn't input custom names.
     std::vector<std::string> defaultNames = {"A-Tu", "Little-Mei", "King-Baby", "Mrs.Money"};
 
-    clearScreen();
-    // ==================== 處理文字或數字輸入的邏輯 ====================
+    clearScreen(); // Clear the console screen for a clean start.
+
+    // ==================== Handle text or numeric input logic ====================
     std::cout << "How many players?(Maximum:4)...>";
     std::cin >> numPlayers;
-    // 情況 1: 輸入的是無效內容 (例如文字)
+
+    // Scenario 1: Invalid input (e.g., text)
     if (std::cin.fail()) {
-        numPlayers = 1; // 直接創建預設的 1 位玩家，不需再詢問姓名
-        std::cin.clear(); // 清除錯誤旗標
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // 忽略緩衝區中的無效輸入
+        numPlayers = 1; // Default to 1 player if input is invalid.
+        std::cin.clear(); // Clear the error flags on std::cin.
+        // Ignore the rest of the invalid input in the buffer up to the newline character.
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     }
-    // 情況 2: 輸入的是數字
+    // Scenario 2: Input is a valid number
     else {
-        // 將玩家人數限制在 1 到 4 之間
+        // Limit the number of players between 1 and 4.
         if (numPlayers > 4) {
             numPlayers = 4;
-        } else if (numPlayers < 1) {
+        }
+        else if (numPlayers < 1) {
             numPlayers = 1;
         }
 
-        // 在使用 getline 之前，清除輸入緩衝區中可能殘留的換行符
+        // Clear the input buffer of any leftover newline characters before using getline.
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-        // 根據玩家人數，循環詢問姓名
+        // Loop to ask for player names based on the number of players.
         for (int i = 0; i < numPlayers; ++i) {
             std::string name;
             std::cout << "Please input player " << i + 1 << "'s name (Default: " << defaultNames[i] << ")...>";
             std::getline(std::cin, name);
 
             if (!name.empty()) {
-                defaultNames[i] = name; // 有輸入則替換掉原本的預設名稱
+                defaultNames[i] = name;
             }
         }
     }
-    
-    // 透過 WorldPlayer 初始化玩家資料
+
+    // Create WorldPlayer for manage all players
     WorldPlayer players(numPlayers, defaultNames);
-    // 將所有玩家加到起始點 (位置 0)
+    // Place all players at the starting point (location 0).
     for (int i = 0; i < numPlayers; ++i) {
         worldMap.getUnit(0)->addPlayerHere(players.playerNow(i));
     }
@@ -75,187 +81,186 @@ int main() {
     displayPlayerStatus(players, 0);
 
     // 2. Main Game Loop
-    int currentPlayerIndex = 0;
-    int activePlayers = numPlayers;
+    int currentPlayerIndex = 0; // Initialize currentPlayerIndex to 0.
+    int activePlayers = numPlayers; // Initialize activePlayers with the total number of players.
 
-    while (activePlayers > 1) {
-        Player* currentPlayer = players.playerNow(currentPlayerIndex);
+    // The game loop continues until a specific condition (e.g., only one active player or exit choice) is met.
+    while (true) {
+        Player* currentPlayer = players.playerNow(currentPlayerIndex); // Get the current player object.
 
+        // If the current player is bankrupt, skip their turn and move to the next player.
         if (currentPlayer->getStatus() == PlayerStatus::Bankrupt) {
             currentPlayerIndex = (currentPlayerIndex + 1) % numPlayers;
-            continue;
-        }
-
-        std::cout << currentPlayer->getName() << ", your action? (1:Dice [default] / 2:Exit)...>";
-        std::string choice;
-        std::getline(std::cin, choice);
-
-        if (choice == "2") {
-            break;
-        }
-
-        if (currentPlayer->getStatus() == PlayerStatus::InJail) {
-            std::cout << currentPlayer->getName() << " is in jail and misses a turn." << std::endl;
-            currentPlayer->releaseFromJail();
-            waitForEnter();
-            currentPlayerIndex = (currentPlayerIndex + 1) % numPlayers;
+            clearScreen(); // Clear screen and update display for the next turn.
             displayBoard(worldMap, players);
             displayPlayerStatus(players, currentPlayerIndex);
             continue;
         }
 
-        // 4. Roll Dice and Move
-        int diceRoll = rollDice();
+        // Prompt the current player for their action.
+        std::cout << currentPlayer->getName() << ", your action? (1:Dice [default] / 2:Exit)...>";
+        std::string choice = "";
+        std::getline(std::cin, choice); // Read player's choice.
 
-        int oldLocation = currentPlayer->getLocation();
-        int newLocation = (oldLocation + diceRoll) % worldMap.getUnitCount();
-
-        if (newLocation < oldLocation) {
-            int reward = 2000;
-            std::cout << currentPlayer->getName() << " passed GO and collects $" << reward << "!" << std::endl; // Passing start gives reward
-            currentPlayer->receive(reward);
-        }
-        currentPlayer->moveTo(newLocation, &worldMap);
-
-        MapUnit* currentUnit = worldMap.getUnit(newLocation);
-
-        // 先顯示移動後的遊戲盤面
-        clearScreen();
-        displayBoard(worldMap, players);
-        displayPlayerStatus(players, currentPlayerIndex);
-
-        std::cout << currentPlayer->getName() << " moved to " << currentUnit->getName() << std::endl;
-
-        currentUnit->onVisit(currentPlayer);
-        handleBuyAction(currentPlayer, currentUnit);
-
-        // Check for bankruptcy
-        if (currentPlayer->getMoney() < 0) {
-            std::cout << currentPlayer->getName() << " is bankrupt!" << std::endl;
-            currentPlayer->declareBankruptcy();
-            currentPlayer->releaseAllUnits();
-            activePlayers--;
-        }
-
-        waitForEnter();
-
-        // Move to the next player
-        currentPlayerIndex = (currentPlayerIndex + 1) % numPlayers;
-
-        // Display board for the next turn
-        clearScreen();
-        displayBoard(worldMap, players);
-        displayPlayerStatus(players, currentPlayerIndex);
-    }
-/*
-    // 8. Announce Winner
-    for(Player* p : players) {
-        if(p->getStatus() != PlayerStatus::Bankrupt) {
-            std::cout << "\nGame Over! The winner is " << p->getName() << "!" << std::endl;
+        // If the player chooses to exit, break the game loop.
+        if (choice == "2") {
             break;
         }
+
+        // If the current player is in jail, they miss a turn.
+        if (currentPlayer->getStatus() == PlayerStatus::InJail) {
+            std::cout << currentPlayer->getName() << " is in jail and misses a turn.";
+            currentPlayer->releaseFromJail(); // Release them from jail for the next round.
+            waitForEnter(); // Wait for user to press Enter.
+            currentPlayerIndex = (currentPlayerIndex + 1) % numPlayers; // Move to the next player.
+            clearScreen(); // Clear screen and update display for the next turn.
+            displayBoard(worldMap, players);
+            displayPlayerStatus(players, currentPlayerIndex);
+            continue; // Skip the rest of the current player's turn.
+        }
+
+        // 4. Roll Dice and Move
+        int diceRoll = rollDice(); // Roll the dice to get a number between 1 and 6.
+
+        int oldLocation = currentPlayer->getLocation(); // Get player's current location.
+        // Calculate new location, wrapping around the board if necessary.
+        int newLocation = (oldLocation + diceRoll) % worldMap.getUnitCount();
+
+        // Check if the player passed "GO" (crossed the starting point).
+        if (newLocation < oldLocation) {
+            int reward = /*200*/0; // Initialize reward to 2000.
+            std::cout << currentPlayer->getName() << " passed GO and collects $" << reward << "!" << std::endl; // Passing start gives reward
+            currentPlayer->receive(reward); // Give the player the reward.
+        }
+        // Move the player to the new location on the map.
+        currentPlayer->moveTo(newLocation, &worldMap);
+
+        // Get the MapUnit object at the player's new location.
+        MapUnit* currentUnit = worldMap.getUnit(newLocation);
+
+        // First, display the game board after the player has moved.
+        clearScreen();
+        displayBoard(worldMap, players);
+        displayPlayerStatus(players, currentPlayerIndex);
+
+        // Trigger the onVisit action for the unit the player landed on.
+        currentUnit->onVisit(currentPlayer);
+        // Handle actions related to buying or upgrading units.
+        handleBuyAction(currentPlayer, currentUnit);
+
+        // Check for bankruptcy after actions.
+        if (currentPlayer->getMoney() < 0) { // If player's money falls below zero, they are bankrupt.
+            std::cout << std::endl << currentPlayer->getName() << " is bankrupt!";
+            currentPlayer->declareBankruptcy(); // Set player status to bankrupt and release all units.
+            activePlayers--; // Decrease the count of active players.
+        }
+
+        waitForEnter(); // Pause execution until user presses Enter.
+
+        // Move to the next player in the turn order.
+        currentPlayerIndex = (currentPlayerIndex + 1) % numPlayers;
+
+        // If only one player remains active, the game ends.
+        if (activePlayers == 1) {
+            break;
+        }
+
+        // Display board for the next turn, clearing the screen first.
+        clearScreen();
+        displayBoard(worldMap, players);
+        displayPlayerStatus(players, currentPlayerIndex);
     }
 
-*/
-    return 0;
+    // 8. Announce Winner (This part would typically involve identifying the last active player)
+    std::cout << "The winner is determined!" << std::endl;
+
+    return 0; // End of the program.
 }
 
-/* 清除主控台螢幕 */
+/* Clear the console screen */
 void clearScreen() {
+    // system("cls") is for Windows; use system("clear") for Linux/macOS.
     system("clear");
 }
 
+// Rolls a dice and returns a random number between 1 and 6.
 int rollDice() {
     return rand() % 6 + 1; // A random number in [1, 6]
 }
 
+// Pauses execution until the user presses the Enter key.
 void waitForEnter() {
     std::cout << "\nPress Enter to continue...";
-    std::string dummy;
-    std::getline(std::cin, dummy);
+    std::string dummy = ""; // Initialize dummy to empty string.
+    std::getline(std::cin, dummy); // Read and discard the input.
 }
 
-
+// Handles the logic for buying or interacting with a unit.
 void handleBuyAction(Player* player, MapUnit* unit) {
+    // If the unit is unowned and has a price (i.e., it's buyable).
     if (unit->getHost() == nullptr && unit->getPrice() > 0) { // Unowned and buyable
         int price = unit->getPrice();
-        if (player->getMoney() >= price) {
+        if (player->getMoney() >= price) { // If the player has enough money to buy.
             std::cout << player->getName() << ", do you want to buy " << unit->getName() << "? (1: Yes [default] / 2: No) ...>";
-            std::string buy_choice;
-            std::getline(std::cin, buy_choice);
-            if (buy_choice != "2") {
-                player->pay(price);
-                player->addUnit(unit);
-                std::cout << "You pay $" << price << " to buy " << unit->getName() << std::endl;
+            std::string buy_choice = ""; // Initialize buy_choice to empty string.
+            std::getline(std::cin, buy_choice); // Get player's choice to buy.
+            if (buy_choice != "2") { // If player chooses to buy (or presses Enter for default Yes).
+                player->pay(price); // Player pays the price.
+                player->addUnit(unit); // Add the unit to the player's owned units.
+                std::cout << "You pay $" << price << " to buy " << unit->getName();
             }
         }
     }
-    // Dynamic cast to check if the unit is upgradable
+    // If the unit is owned by the current player, check if it's upgradable.
     else if (unit->getHost() == player) {
+        // Use dynamic_cast to check if the MapUnit is an UpgradableUnit.
         if (UpgradableUnit* u_unit = dynamic_cast<UpgradableUnit*>(unit)) {
-             handleUpgradeAction(player, u_unit);
+             handleUpgradeAction(player, u_unit); // If so, handle the upgrade action.
         }
     }
 }
 
+// Handles the logic for upgrading an upgradable unit.
 void handleUpgradeAction(Player* player, UpgradableUnit* unit) {
-    if (unit->getLevel() < 5) { // Maximum level is 5
+    if (unit->getLevel() < 5) { // Maximum level is 5.
         int upgrade_price = unit->getUpgradePrice();
-        if (player->getMoney() >= upgrade_price) {
-             std::cout << "You own " << unit->getName() << " (Lv." << unit->getLevel() << "). Upgrade to Lv." << (unit->getLevel() + 1) << " costs $" << upgrade_price << std::endl;
-             std::cout << "Do you want to upgrade? (1:Yes [default] / 2:No)...>";
-             std::string upgrade_choice;
-             std::getline(std::cin, upgrade_choice);
-             if(upgrade_choice != "2") {
-                player->pay(upgrade_price);
-                unit->upgrade();
-                std::cout << player->getName() << " upgraded " << unit->getName() << " to Lv." << unit->getLevel() << std::endl;
+        if (player->getMoney() >= upgrade_price) { // If the player has enough money to upgrade.
+             std::cout << player->getName() << ", do you want to upgrade " << unit->getName() << "? (1: Yes [default] / 2: No)...>";
+             std::string upgrade_choice = ""; // Initialize upgrade_choice to empty string.
+             std::getline(std::cin, upgrade_choice); // Get player's choice to upgrade.
+             if(upgrade_choice != "2") { // If player chooses to upgrade.
+                player->pay(upgrade_price); // Player pays the upgrade price.
+                unit->upgrade(); // Upgrade the unit's level.
+                std::cout << "You pay $" <<unit->getUpgradePrice() << " to upgrade " << unit->getName() << " to Lv." << unit->getLevel();
              }
         }
     }
+    else { // If unit->getLevel() is 5, it's already at max level.
+        std::cout << player->getName() << ", your " << unit->getName() << " already reaches the highest level!";
+    }
 }
 
-std::string getUnitDetailsString(MapUnit* unit) {
-    std::stringstream ss;
-    Player* owner = unit->getHost();
-
-    // 如果地產被擁有
-    if (owner) {
-        ss << "{" << owner->getId() << "} ";
-        // 檢查是否為可升級單位
-        if (UpgradableUnit* u_unit = dynamic_cast<UpgradableUnit*>(unit)) {
-            ss << "U$ " << std::left << std::setw(5) << u_unit->getFine()
-               << "L" << u_unit->getLevel();
-        } else { // 其他類型（如 C, R），繼續顯示購買價
-            ss << "B$ " << std::left << std::setw(8) << unit->getPrice();
-        }
-    }
-    // 如果地產未被擁有
-    else {
-        ss << "B$ " << std::left << std::setw(8) << unit->getPrice();
-    }
-    return ss.str();
-}
-
-
+// Displays the game board, showing units, owners, prices/fines, and player positions.
 void displayBoard(const WorldMap& map, const WorldPlayer& players) {
-    if (map.getUnitCount() == 0) return;
+    if (map.getUnitCount() == 0) return; // If there are no units on the map, do nothing.
 
-    const int n_players = players.getPlayerCount();
+    const int n_players = players.getPlayerCount(); // Get the total number of players.
+    // Calculate half the size of the board for symmetrical display.
     int half_size = (map.getUnitCount() + 1) / 2;
 
+    // Loop through half of the units to display both left and right sides of the board.
     for (int i = 0; i < half_size; ++i) {
-        int left_id = i;
-        int right_id = map.getUnitCount() - 1 - i;
+        int left_id = i; // ID of the unit on the left side.
+        int right_id = map.getUnitCount() - 1 - i; // ID of the unit on the right side.
 
         MapUnit* left_unit = map.getUnit(left_id);
         MapUnit* right_unit = (left_id != right_id) ? map.getUnit(right_id) : nullptr;
 
-        // --- 1. 準備玩家位置軌道字串 ---
+        // --- 1. Prepare player position track strings ---
         std::string left_track(n_players, ' ');
         for (int j = 0; j < n_players; ++j) {
             Player* p = players.playerNow(j);
-            if (p->getStatus() != PlayerStatus::Bankrupt && p->getLocation() == left_id) {
+            if (p->getLocation() == left_id) {
                 left_track[p->getId()] = std::to_string(p->getId())[0];
             }
         }
@@ -264,84 +269,106 @@ void displayBoard(const WorldMap& map, const WorldPlayer& players) {
         if (right_unit) {
             for (int j = 0; j < n_players; ++j) {
                 Player* p = players.playerNow(j);
-                if (p->getStatus() != PlayerStatus::Bankrupt && p->getLocation() == right_id) {
+                if (p->getLocation() == right_id) {
                     right_track[p->getId()] = std::to_string(p->getId())[0];
                 }
             }
         }
 
-        // --- 2. 準備左側地產的各個資訊區塊 ---
+        // --- 2. Prepare information blocks for the left property ---
         std::stringstream left_owner_ss;
         if (left_unit->getHost() != nullptr) {
             left_owner_ss << "{" << left_unit->getHost()->getId() << "}";
         }
 
         std::stringstream left_info_ss;
-        if (left_unit->getHost() == nullptr) {
+        if (left_unit->type() == "J") {
+            left_info_ss << "J";
+        }
+        else if (left_unit->getHost() == nullptr) {
             left_info_ss << "B$ " << left_unit->getPrice();
-        } else {
+        }
+        else {
             if (UpgradableUnit* u_unit = dynamic_cast<UpgradableUnit*>(left_unit)) {
-                left_info_ss << "U$ " << u_unit->getUpgradePrice() << " L" << u_unit->getLevel();
-            } else { // 處理其他類型如 C, R 的地產
-                left_info_ss << "Owned";
+                if (u_unit->getLevel() == 5) {
+                    left_info_ss << "L5";
+                }
+                else {
+                    left_info_ss << "U$" << std::setw(5) << std::right << u_unit->getUpgradePrice() << " L" << u_unit->getLevel();
+                }
+            }
+            else if (CollectableUnit* c_unit = dynamic_cast<CollectableUnit*>(left_unit)) {
+                left_info_ss << "x" << c_unit->getHost()->getNumCollectableUnits();
+            }
+            else {
+                left_info_ss << "?";
             }
         }
 
-        // --- 3. 準備右側地產的各個資訊區塊 ---
+        // --- 3. Prepare information blocks for the right property ---
         std::stringstream right_owner_ss, right_info_ss;
         if (right_unit) {
             if (right_unit->getHost() != nullptr) {
                 right_owner_ss << "{" << right_unit->getHost()->getId() << "}";
             }
-            if (right_unit->getHost() == nullptr) {
+            if (right_unit->type() == "J") {
+                right_info_ss << "J";
+            }
+            else if (right_unit->getHost() == nullptr) {
                 right_info_ss << "B$ " << right_unit->getPrice();
-            } else {
+            }
+            else {
                 if (UpgradableUnit* u_unit = dynamic_cast<UpgradableUnit*>(right_unit)) {
-                    right_info_ss << "U$ " << u_unit->getUpgradePrice() << " L" << u_unit->getLevel();
-                } else {
-                    right_info_ss << "Owned";
+                    if (u_unit->getLevel() == 5) {
+                        right_info_ss << "L5";
+                    }
+                    else {
+                        right_info_ss << "U$" <<  std::setw(5) << std::right << u_unit->getUpgradePrice() << " L" << u_unit->getLevel();
+                    }
+                }
+                else if (CollectableUnit* c_unit = dynamic_cast<CollectableUnit*>(right_unit)) {
+                    right_info_ss << "x" << c_unit->getHost()->getNumCollectableUnits();
+                }
+                else {
+                    right_info_ss << "?";
                 }
             }
         }
 
-        // --- 4. 最終輸出排版 ---
-        // 左半邊
+        // --- 4. Final output formatting ---
         std::cout << "=" << std::setw(n_players) << std::left << left_track << "=  "
-                  << "[" << left_id << "] "
-                  << std::setw(10) << std::right << left_unit->getName() // 名稱佔 10 格
-                  << " " << std::setw(4) << std::left << left_owner_ss.str()   // 擁有者佔 5 格
-                  << std::setw(14) << std::left << left_info_ss.str();  // 詳細資訊佔 12 格
+                  << "[" << left_id << "]"
+                  << std::setw(10) << std::right << left_unit->getName().substr(0, 10)
+                  << " " << std::setw(4) << std::left << left_owner_ss.str()
+                  << std::setw(14) << std::left << left_info_ss.str();
 
-        // 右半邊
         if (right_unit) {
             std::cout << "="
                       << std::setw(n_players) << std::left << right_track << "=  "
-                      << "[" << right_id << "] "
-                      << std::setw(10) << std::right << right_unit->getName()
+                      << "[" << right_id << "]"
+                      << std::setw(10) << std::right << right_unit->getName().substr(0, 10)
                       << " " << std::setw(4) << std::left << right_owner_ss.str()
-                      << std::setw(12) << std::left << right_info_ss.str();
+                      << std::setw(14) << std::left << right_info_ss.str();
         }
 
         std::cout << std::endl;
     }
 }
 
-
-
+// Displays the status of all active players.
 void displayPlayerStatus(const WorldPlayer& players, int currentPlayerIndex) {
     std::cout << std::endl;
     for (int i = 0; i < players.getPlayerCount(); ++i) {
         const auto* p = players.playerNow(i);
         if (p->getStatus() == PlayerStatus::Bankrupt) {
-            std::cout << "   [" << p->getId() << "] " << std::setw(12) << std::left << p->getName() << "is BANKRUPT" << std::endl;
             continue;
         }
 
         if (i == currentPlayerIndex) std::cout << "=>";
         else std::cout << "  ";
 
-        std::cout << "[" << p->getId() << "] " << std::setw(12) << std::left << p->getName()
-                  << "$" << std::setw(8) << std::left << p->getMoney()
+        std::cout << "[" << p->getId() << "]  " << std::setw(15) << std::right << p->getName().substr(0, 15)
+                  << "  $" << std::setw(6) << std::left << p->getMoney()
                   << "with " << p->getUnitCount() << " units" << std::endl;
     }
     std::cout << std::endl;
