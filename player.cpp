@@ -50,7 +50,6 @@ void Player::moveTo(int new_location, WorldMap* map) {
 
 void Player::addUnit(MapUnit* unit) {
     owned_units_.push_back(unit);
-    unit->setHost(this);
 }
 
 // When a player goes bankrupt, release all their properties

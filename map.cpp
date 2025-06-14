@@ -5,37 +5,117 @@
 #include <iostream>
 #include <algorithm>
 #include <cstdlib>
-
+#include <string>
+#include <iomanip> 
+ 
 // ===== MapUnit (base class) =====
 void MapUnit::addPlayerHere(Player* p) {
-  who_is_here_.push_back(p);
+  players_here_ptrs_[p->getId()] = p;
 }
+
 
 void MapUnit::removePlayerHere(Player* p) {
-    who_is_here_.erase(
-        std::remove(who_is_here_.begin(), who_is_here_.end(), p),
-        who_is_here_.end()
-    );
+  players_here_ptrs_[p->getId()] = nullptr;
 }
 
-const std::vector<Player*>& MapUnit::getPlayersHere() const {
-  return who_is_here_;
+const std::array<Player*, MAX_PLAYERS>& MapUnit::getPlayersHere() const {
+  return players_here_ptrs_;
+}
+
+std::string MapUnit::getPlayersHereString() const {
+  std::string s = "=";
+  for (int i = 0; i < MAX_PLAYERS; ++i) {
+      if (players_here_ptrs_[i]) {
+          s += std::to_string(i);
+      } else {
+          s += " ";
+      }
+  }
+  s += "=";
+  return s;
+}
+
+
+std::string MapUnit::display() const {
+  std::ostringstream oss;
+  oss << getPlayersHereString() << "  "
+      << "[" << id_ << "] "
+      << std::right << std::setw(8) << name_ << " ";
+  return oss.str();
+}
+
+
+// ================== Purchasable Unit ====================
+PurchasableUnit::PurchasableUnit(int id, const std::string& name, int price)
+        : MapUnit(id, name), price_(price), host_(nullptr) {}
+
+
+void PurchasableUnit::tryToBuy(Player* player) {
+  int price = getPrice();
+  if (player->getMoney() >= price) { // If the player has enough money to buy.
+    std::cout << player->getName() << ", do you want to buy " << getName() << "? (1: Yes [default] / 2: No) ...>";
+    std::string buy_choice = ""; // Initialize buy_choice to empty string.
+    std::getline(std::cin, buy_choice); // Get player's choice to buy.
+    if (buy_choice != "2") { // If player chooses to buy (or presses Enter for default Yes).
+        player->pay(price); // Player pays the price.
+        player->addUnit(this); // Add the unit to the player's owned units.
+        setHost(player); // Set the host of the unit to the player
+        std::cout << "You pay $" << price << " to buy " << getName();
+    }
+  }
+}
+
+std::string PurchasableUnit::display() const {
+  std::ostringstream oss;
+  oss << MapUnit::display();
+  if (!host_) {
+      oss << std::setw(4) << ""; 
+      oss << std::setw(3) << std::left << "B$";
+      oss << std::setw(5) << std::right << price_;
+  } else {
+      std::string host_str = "{" + std::to_string(host_->getId()) + "}";
+      oss << std::setw(4) << std::left << host_str;
+  }
+  return oss.str();
 }
 
 // ================== Upgradable Unit ====================
 UpgradableUnit::UpgradableUnit(int id, const std::string& name, int price, int upgrade_price, const int* fines)
-    : MapUnit(id, name), price_(price), upgrade_price_(upgrade_price), level_(1) {
+  : PurchasableUnit(id, name, price), upgrade_price_(upgrade_price), level_(1) {
   for (int i = 0; i < 5; ++i) {
     fines_[i] = fines[i];
   }
 }
 
 void UpgradableUnit::onVisit(Player* player) {
-  if (host_ && host_ != player) {
+  if (!host_) {
+    tryToBuy(player);
+  }
+  else if (host_ != player) {
+    // If the unit is owned by another player, the visiting player must pay a fine
     int fine = getFine();
     std::cout << player->getName() << ", you must pay $" << fine << " to Player " << host_->getId() << " (" << host_->getName() << ")";
     int payment = player->pay(fine);
     host_->receive(payment);
+  }
+  else if (host_ == player) {
+    // upgrade if the owner is the same as the visiting player
+    if (getLevel() < 5) { // Maximum level is 5.
+      int upgrade_price = getUpgradePrice();
+      if (player->getMoney() >= upgrade_price) { // If the player has enough money to upgrade.
+           std::cout << player->getName() << ", do you want to upgrade " << getName() << "? (1: Yes [default] / 2: No)...>";
+           std::string upgrade_choice = ""; // Initialize upgrade_choice to empty string.
+           std::getline(std::cin, upgrade_choice); // Get player's choice to upgrade.
+           if(upgrade_choice != "2") { // If player chooses to upgrade.
+              player->pay(upgrade_price); // Player pays the upgrade price.
+              upgrade(); // Upgrade the unit's level.
+              std::cout << "You pay $" << upgrade_price << " to upgrade " << getName() << " to Lv." << getLevel();
+           }
+      }
+    }
+    else { // If unit->getLevel() is 5, it's already at max level.
+      std::cout << player->getName() << ", your " << getName() << " already reaches the highest level!";
+    }
   }
 }
 
@@ -43,10 +123,27 @@ std::string UpgradableUnit::type() const{ return "U"; }
 
 void UpgradableUnit::reset() {
   level_ = 1;
-  host_ = nullptr;
+  setHost(nullptr);
 }
 
-int UpgradableUnit::getPrice() const { return price_; }
+std::string UpgradableUnit::display() const {
+  std::ostringstream oss;
+  oss << PurchasableUnit::display();
+  std::ostringstream status;
+  if(host_) {
+    if (level_ == 5) {
+      oss << std::setw(3) << std::left << "L5";
+    } else {
+      oss << std::setw(3) << std::left << "U$";
+      oss << std::setw(5) << std::right << upgrade_price_;
+      oss << std::setw(2) << "";
+      oss << "L" << level_;
+      
+    }
+  }
+  return oss.str();
+}
+
 int UpgradableUnit::getUpgradePrice() const { return upgrade_price_; }
 int UpgradableUnit::getLevel() const { return level_; }
 
@@ -58,12 +155,16 @@ int UpgradableUnit::getFine() const {
   return fines_[level_ - 1];
 }
 
+
 // ================== Random Cost Unit ====================
 RandomCostUnit::RandomCostUnit(int id, const std::string& name, int price, int fine_per_point)
-  : MapUnit(id, name), price_(price), fine_per_point_(fine_per_point) {}
+  : PurchasableUnit(id, name, price), fine_per_point_(fine_per_point) {}
 
 void RandomCostUnit::onVisit(Player* player) {
-  if (host_ && host_ != player) {
+  if (!host_) {
+    tryToBuy(player);
+  }
+  else if (host_ != player) {
     int dice = rand() % 6 + 1;
     int total_fine = dice * fine_per_point_;
     std::cout << player->getName() << ", you must pay $" << total_fine << " to Player " << host_->getId() << " (" << host_->getName() << ")";
@@ -73,27 +174,45 @@ void RandomCostUnit::onVisit(Player* player) {
 }
 
 std::string RandomCostUnit::type() const { return "R"; }
-void RandomCostUnit::reset() { host_ = nullptr; }
-int RandomCostUnit::getPrice() const { return price_; }
+void RandomCostUnit::reset() { setHost(nullptr); }
 
+std::string RandomCostUnit::display() const {
+  std::ostringstream oss;
+  oss << PurchasableUnit::display();
+  if (host_) {
+    oss << "?";
+  }
+  return oss.str();
+}
 
 // ================== Collectable Unit ====================
 CollectableUnit::CollectableUnit(int id, const std::string& name, int price, int unit_fine)
-    : MapUnit(id, name), price_(price), unit_fine_(unit_fine) {}
+    : PurchasableUnit(id, name, price), unit_fine_(unit_fine) {}
 
 void CollectableUnit::onVisit(Player* player) {
-    if (host_ && host_ != player) {
-        int num_owned = host_->getNumCollectableUnits();
-        int fine = num_owned * unit_fine_; // Fine depends on how many the owner has
-        std::cout << player->getName() << ", you must pay $" << fine << " to Player " << host_->getId() << host_->getName();
-        int payment = player->pay(fine);
-        host_->receive(payment);
-    }
+  if (!host_) {
+    tryToBuy(player);
+  }
+  else if (host_ != player) {
+      int num_owned = host_->getNumCollectableUnits();
+      int fine = num_owned * unit_fine_; // Fine depends on how many the owner has
+      std::cout << player->getName() << ", you must pay $" << fine << " to Player " << host_->getId() << host_->getName();
+      int payment = player->pay(fine);
+      host_->receive(payment);
+  }
 }
 
 std::string CollectableUnit::type() const { return "C"; }
-void CollectableUnit::reset() { host_ = nullptr; }
-int CollectableUnit::getPrice() const { return price_; }
+void CollectableUnit::reset() { setHost(nullptr); }
+
+std::string CollectableUnit::display() const {
+  std::ostringstream oss;
+  oss << PurchasableUnit::display();
+  if(host_) {
+    oss << "x" << host_->getNumCollectableUnits();
+  }
+  return oss.str();
+}
 
 
 // ================== Jail Unit ====================

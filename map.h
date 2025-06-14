@@ -8,16 +8,15 @@
 
 // Forward declare Player class
 class Player;
-
+constexpr int MAX_PLAYERS = 4;
 
 // ===== MapUnit (base class) =====
 class MapUnit {
 protected:
   int id_;
   std::string name_;
-  Player* host_ = nullptr;
-  std::vector<Player*> who_is_here_;
-
+  std::array<Player*, MAX_PLAYERS> players_here_ptrs_ = {};
+  std::string getPlayersHereString() const;
 public:
   MapUnit(int id, const std::string& name) : id_(id), name_(name) {}
   virtual ~MapUnit() = default;
@@ -25,23 +24,39 @@ public:
   virtual void onVisit(Player* player) = 0;
   virtual std::string type() const = 0;
   virtual void reset() {}
-  virtual int getPrice() const { return 0; } // Universal price getter
+  virtual bool isPurchasable() const { return false; }
+  virtual std::string display() const;
 
   int getId() const { return id_; }
   std::string getName() const { return name_; }
-  Player* getHost() const { return host_; }
-  void setHost(Player* p) { host_ = p; }
 
   void addPlayerHere(Player* p);
   void removePlayerHere(Player* p);
-  const std::vector<Player*>& getPlayersHere()const;
+  const std::array<Player*, MAX_PLAYERS>& getPlayersHere() const;
+};
+
+// ================== Purchasable Unit ====================
+class PurchasableUnit : public MapUnit {
+protected:
+    int price_;
+    Player* host_ = nullptr;
+    void tryToBuy(Player* player);
+public:
+    PurchasableUnit(int id, const std::string& name, int price);
+    ~PurchasableUnit() = default;
+
+    bool isPurchasable() const override { return true; }
+    std::string display() const override;
+
+    int getPrice() const { return price_; }  
+    Player* getHost() const { return host_; }
+    void setHost(Player* p) { host_ = p; }
 };
 
 
 // ================== Upgradable Unit ====================
-class UpgradableUnit : public MapUnit {
+class UpgradableUnit : public PurchasableUnit {
 private:
-  int price_;
   int upgrade_price_;
   int fines_[5];
   int level_;
@@ -52,7 +67,7 @@ public:
   void onVisit(Player* player) override;
   std::string type() const override;
   void reset() override;
-  int getPrice() const override;
+  std::string display() const override;
 
   void upgrade();
   int getFine() const;
@@ -61,9 +76,8 @@ public:
 };
 
 // ================== Random Cost Unit ====================
-class RandomCostUnit : public MapUnit {
+class RandomCostUnit : public PurchasableUnit {
 private:
-  int price_;
   int fine_per_point_;
 
 public:
@@ -72,13 +86,12 @@ public:
   void onVisit(Player* player) override;
   std::string type() const override;
   void reset() override;
-  int getPrice() const override;
+  std::string display() const override;
 };
 
 // ================== Collectable Unit ====================
-class CollectableUnit : public MapUnit {
+class CollectableUnit : public PurchasableUnit {
 private:
-    int price_;
     int unit_fine_;
 
 public:
@@ -86,7 +99,7 @@ public:
     void onVisit(Player* player) override;
     std::string type() const override;
     void reset() override;
-    int getPrice() const override;
+    std::string display() const override;
 };
 
 // ================== Jail Unit ====================
