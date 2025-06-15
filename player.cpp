@@ -5,15 +5,15 @@
 // ================== Player ==================
 Player::Player(int id, const std::string& name) : id_(id), name_(name) {}
 
-int Player::getId() const { return id_; }
+const int Player::getId() const { return id_; }
 const std::string& Player::getName() const { return name_; }
-int Player::getMoney() const { return money_; }
-int Player::getLocation() const { return location_; }
-PlayerStatus Player::getStatus() const { return status_; }
-int Player::getUnitCount() const { return owned_units_.size(); }
+const int Player::getMoney() const { return money_; }
+const int Player::getLocation() const { return location_; }
+const PlayerStatus Player::getStatus() const { return status_; }
+const int Player::getUnitCount() const { return owned_units_.size(); }
 
 // Gets the count of only 'Collectable' type units, needed for fine calculation
-int Player::getNumCollectableUnits() const {
+const int Player::getNumCollectableUnits() const {
     int count = 0;
     for (const auto& unit : owned_units_) {
         if (unit->type() == "C") {
@@ -89,6 +89,6 @@ Player* WorldPlayer::playerNow(int index) const {
     return (index >= 0 && index < players_.size()) ? players_[index] : nullptr;
 }
 
-int WorldPlayer::getPlayerCount() const {
+const int WorldPlayer::getPlayerCount() const {
     return players_.size();
 }

@@ -165,7 +165,7 @@ int main() {
         displayPlayerStatus(players, currentPlayerIndex);
     }
 
-    std::cout << "The winner is determined!" ;
+    std::cout << "The winner is determined!" << std::endl;
 
     return 0;
 }
@@ -196,24 +196,17 @@ void waitForEnter() {
 void displayBoard(const WorldMap& map, const WorldPlayer& players) {
     if (map.getUnitCount() == 0) return; // If there are no units on the map, do nothing.
 
-    const int n_players = players.getPlayerCount(); // Get the total number of players.
-    // Calculate half the size of the board for symmetrical display.
-    int half_size = (map.getUnitCount() + 1) / 2;
-
     int map_size = map.getUnitCount();
-    if (map.getUnitCount() % 2 == 1) {
-        std::cout << std::setw(40) << std::left << map.getUnit(0)->display() << std::endl;
-    }
-    else {
-        std::cout << std::setw(40) << std::left << map.getUnit(0)->display();
-        std::cout << std::setw(40) << std::left << map.getUnit(map_size-1)->display();
-        std::cout <<  std::endl;
-    }
+    int half_size = map_size / 2;
+
     // Loop through half of the units to display both left and right sides of the board.
-    for (int i = 1; i < half_size; ++i) {
+    for (int i = 0; i < half_size; ++i) {
         std::cout << std::setw(40) << std::left << map.getUnit(i)->display();
         std::cout << std::setw(40) << std::left << map.getUnit(map_size-1-i)->display();
         std::cout << std::endl;
+    }
+    if (map.getUnitCount() % 2 == 1) {
+        std::cout << std::setw(40) << std::left << map.getUnit(half_size)->display() << std::endl;
     }
 }
 
@@ -230,7 +223,7 @@ void displayPlayerStatus(const WorldPlayer& players, int currentPlayerIndex) {
         else std::cout << "  ";
 
         std::cout << "[" << p->getId() << "]  " << std::setw(15) << std::right << p->getName().substr(0, 15)
-                  << "  $" << std::setw(6) << std::left << p->getMoney()
+                  << "  $" << std::setw(7) << std::left << p->getMoney()
                   << "with " << p->getUnitCount() << " units" << std::endl;
     }
     std::cout << std::endl;

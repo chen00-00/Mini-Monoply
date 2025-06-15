@@ -17,13 +17,13 @@ public:
     Player(int id = 0, const std::string& name = "nameless");
     ~Player() {}
 
-    int getId() const;
+    const int getId() const;
     const std::string& getName() const;
-    int getMoney() const;
-    int getLocation() const;
-    PlayerStatus getStatus() const;
-    int getUnitCount() const;
-    int getNumCollectableUnits() const;
+    const int getMoney() const;
+    const int getLocation() const;
+    const PlayerStatus getStatus() const;
+    const int getUnitCount() const;
+    const int getNumCollectableUnits() const;
 
 
     //void pay(Player* player, int amount);
@@ -52,7 +52,7 @@ public:
   ~WorldPlayer();
 
   Player* playerNow(int index) const;
-  int getPlayerCount() const;
+  const int getPlayerCount() const;
 private:
   std::vector<Player*> players_;
 };

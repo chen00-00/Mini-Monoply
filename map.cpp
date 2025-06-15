@@ -43,10 +43,12 @@ std::string MapUnit::getPlayersHereString() const {
 }
 
 
-std::string MapUnit::display() const {
+const std::string MapUnit::display() const {
   std::ostringstream oss;
+  std::ostringstream id_stream;
+  id_stream << "[" << id_ << "]";
   oss << getPlayersHereString() << "  "
-      << "[" << id_ << "]"
+      << std::left << std::setw(5) << id_stream.str()
       << std::right << std::setw(10) << name_.substr(0, 10) << " ";
   return oss.str();
 }
@@ -72,7 +74,7 @@ void PurchasableUnit::tryToBuy(Player* player) {
   }
 }
 
-std::string PurchasableUnit::display() const {
+const std::string PurchasableUnit::display() const {
   std::ostringstream oss;
   oss << MapUnit::display();
   if (!host_) {
@@ -126,14 +128,14 @@ void UpgradableUnit::onVisit(Player* player) {
   }
 }
 
-std::string UpgradableUnit::type() const{ return "U"; }
+const std::string UpgradableUnit::type() const{ return "U"; }
 
 void UpgradableUnit::reset() {
   level_ = 1;
   setHost(nullptr);
 }
 
-std::string UpgradableUnit::display() const {
+const std::string UpgradableUnit::display() const {
   std::ostringstream oss;
   oss << PurchasableUnit::display();
   std::ostringstream status;
@@ -150,14 +152,14 @@ std::string UpgradableUnit::display() const {
   return oss.str();
 }
 
-int UpgradableUnit::getUpgradePrice() const { return upgrade_price_; }
-int UpgradableUnit::getLevel() const { return level_; }
+const int UpgradableUnit::getUpgradePrice() const { return upgrade_price_; }
+const int UpgradableUnit::getLevel() const { return level_; }
 
 void UpgradableUnit::upgrade() {
   if (level_ < 5) ++level_;
 }
 
-int UpgradableUnit::getFine() const {
+const int UpgradableUnit::getFine() const {
   return fines_[level_ - 1];
 }
 
@@ -179,10 +181,10 @@ void RandomCostUnit::onVisit(Player* player) {
   }
 }
 
-std::string RandomCostUnit::type() const { return "R"; }
+const std::string RandomCostUnit::type() const { return "R"; }
 void RandomCostUnit::reset() { setHost(nullptr); }
 
-std::string RandomCostUnit::display() const {
+const std::string RandomCostUnit::display() const {
   std::ostringstream oss;
   oss << PurchasableUnit::display();
   if (host_) {
@@ -202,16 +204,16 @@ void CollectableUnit::onVisit(Player* player) {
   else if (host_ != player) {
       int num_owned = host_->getNumCollectableUnits();
       int fine = num_owned * unitFine_; // Fine depends on how many the owner has
-      std::cout << player->getName() << ", you must pay $" << fine << " to Player " << host_->getId() << host_->getName();
+      std::cout << player->getName() << ", you must pay $" << fine << " to Player " << host_->getId() << " (" << host_->getName() << ")";
       int payment = player->pay(fine);
       host_->receive(payment);
   }
 }
 
-std::string CollectableUnit::type() const { return "C"; }
+const std::string CollectableUnit::type() const { return "C"; }
 void CollectableUnit::reset() { setHost(nullptr); }
 
-std::string CollectableUnit::display() const {
+const std::string CollectableUnit::display() const {
   std::ostringstream oss;
   oss << PurchasableUnit::display();
   if (host_) {
@@ -229,10 +231,10 @@ void JailUnit::onVisit(Player* player) {
     player->setToJail(); // Player is frozen for one round
 }
 
-std::string JailUnit::type() const { return "J"; }
+const std::string JailUnit::type() const { return "J"; }
 
 
-std::string JailUnit::display() const {
+const std::string JailUnit::display() const {
   std::ostringstream oss;
   oss << MapUnit::display();
   oss << std::setw(4) << "";
@@ -289,6 +291,6 @@ MapUnit* WorldMap::getUnit(int index) const {
   return (index >= 0 && index < units_.size()) ? units_[index] : nullptr;
 }
 
-int WorldMap::getUnitCount() const {
+const int WorldMap::getUnitCount() const {
   return units_.size();
 }
