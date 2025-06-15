@@ -21,9 +21,6 @@ int main() {
     srand(time(0));
 
     // 1. Game Setup
-    // Create an instance of the WorldMap, which loads map data from "map.dat".
-    WorldMap worldMap;
-
     int numPlayers = 0;
     // Default names for players, used if the user doesn't input custom names.
     std::vector<std::string> defaultNames = {"A-Tu", "Little-Mei", "King-Baby", "Mrs.Money"};
@@ -65,6 +62,9 @@ int main() {
             }
         }
     }
+
+    // Create an instance of the WorldMap, which loads map data from "map.dat".
+    WorldMap worldMap(numPlayers); // Pass the number of players to the WorldMap constructor.
 
     // Create WorldPlayer for manage all players
     WorldPlayer players(numPlayers, defaultNames);

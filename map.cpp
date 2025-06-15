@@ -8,24 +8,32 @@
 #include <iomanip> 
  
 // ===== MapUnit (base class) =====
-void MapUnit::addPlayerHere(Player* p) {
-  players_here_ptrs_[p->getId()] = p;
-}
+MapUnit::MapUnit(int id, const std::string& name, int numPlayers)
+: id_(id), name_(name), playersHerePtrs_(numPlayers, nullptr) {}
 
+void MapUnit::addPlayerHere(Player* p) {
+  int id = p->getId();
+  if (id >= 0 && id < playersHerePtrs_.size()) {
+    playersHerePtrs_[id] = p;
+  }
+}
 
 void MapUnit::removePlayerHere(Player* p) {
-  players_here_ptrs_[p->getId()] = nullptr;
+  int id = p->getId();
+  if (id >= 0 && id < playersHerePtrs_.size()) {
+    playersHerePtrs_[id] = nullptr;
+  }
 }
 
-Player* const* MapUnit::getPlayersHere() const {
-  return players_here_ptrs_;
+const std::vector<Player*>& MapUnit::getPlayersHere() const {
+  return playersHerePtrs_;
 }
 
 std::string MapUnit::getPlayersHereString() const {
   std::string s = "=";
-  for (int i = 0; i < MAX_PLAYERS; ++i) {
-      if (players_here_ptrs_[i]) {
-          s += std::to_string(i);
+  for (Player* ptr : playersHerePtrs_) {
+      if (ptr) {
+          s += std::to_string(ptr->getId());
       } else {
           s += " ";
       }
@@ -45,8 +53,8 @@ std::string MapUnit::display() const {
 
 
 // ================== Purchasable Unit ====================
-PurchasableUnit::PurchasableUnit(int id, const std::string& name, int price)
-        : MapUnit(id, name), price_(price), host_(nullptr) {}
+PurchasableUnit::PurchasableUnit(int id, const std::string& name, int numPlayers, int price)
+        : MapUnit(id, name, numPlayers), price_(price), host_(nullptr) {}
 
 
 void PurchasableUnit::tryToBuy(Player* player) {
@@ -79,8 +87,8 @@ std::string PurchasableUnit::display() const {
 }
 
 // ================== Upgradable Unit ====================
-UpgradableUnit::UpgradableUnit(int id, const std::string& name, int price, int upgrade_price, const int* fines)
-  : PurchasableUnit(id, name, price), upgrade_price_(upgrade_price), level_(1) {
+UpgradableUnit::UpgradableUnit(int id, const std::string& name, int numPlayers, int price, int upgrade_price, const int* fines)
+  : PurchasableUnit(id, name, numPlayers, price), upgrade_price_(upgrade_price), level_(1) {
   for (int i = 0; i < 5; ++i) {
     fines_[i] = fines[i];
   }
@@ -156,8 +164,8 @@ int UpgradableUnit::getFine() const {
 
 
 // ================== Random Cost Unit ====================
-RandomCostUnit::RandomCostUnit(int id, const std::string& name, int price, int fine_per_point)
-  : PurchasableUnit(id, name, price), fine_per_point_(fine_per_point) {}
+RandomCostUnit::RandomCostUnit(int id, const std::string& name, int numPlayers, int price, int finePerPoint)
+  : PurchasableUnit(id, name, numPlayers, price), finePerPoint_(finePerPoint) {}
 
 void RandomCostUnit::onVisit(Player* player) {
   if (!host_) {
@@ -165,7 +173,7 @@ void RandomCostUnit::onVisit(Player* player) {
   }
   else if (host_ != player) {
     int dice = rand() % 6 + 1;
-    int total_fine = dice * fine_per_point_;
+    int total_fine = dice * finePerPoint_;
     std::cout << player->getName() << ", you must pay $" << total_fine << " to Player " << host_->getId() << " (" << host_->getName() << ")";
     int payment = player->pay(total_fine);
     host_->receive(payment);
@@ -185,8 +193,8 @@ std::string RandomCostUnit::display() const {
 }
 
 // ================== Collectable Unit ====================
-CollectableUnit::CollectableUnit(int id, const std::string& name, int price, int unit_fine)
-    : PurchasableUnit(id, name, price), unit_fine_(unit_fine) {}
+CollectableUnit::CollectableUnit(int id, const std::string& name, int numPlayers, int price, int unitFine)
+    : PurchasableUnit(id, name, numPlayers, price), unitFine_(unitFine) {}
 
 void CollectableUnit::onVisit(Player* player) {
   if (!host_) {
@@ -194,7 +202,7 @@ void CollectableUnit::onVisit(Player* player) {
   }
   else if (host_ != player) {
       int num_owned = host_->getNumCollectableUnits();
-      int fine = num_owned * unit_fine_; // Fine depends on how many the owner has
+      int fine = num_owned * unitFine_; // Fine depends on how many the owner has
       std::cout << player->getName() << ", you must pay $" << fine << " to Player " << host_->getId() << host_->getName();
       int payment = player->pay(fine);
       host_->receive(payment);
@@ -215,7 +223,7 @@ std::string CollectableUnit::display() const {
 
 
 // ================== Jail Unit ====================
-JailUnit::JailUnit(int id, const std::string& name) : MapUnit(id, name) {}
+JailUnit::JailUnit(int id, const std::string& name, int numPlayers) : MapUnit(id, name, numPlayers) {}
 
 void JailUnit::onVisit(Player* player) {
     std::cout << player->getName() << " is visiting the Jail. He (She) will be frozen for one round.";
@@ -234,7 +242,7 @@ std::string JailUnit::display() const {
 }
 
 // ================== World Map ====================
-WorldMap::WorldMap() {
+WorldMap::WorldMap(int numPlayers) {
   std::ifstream in("map.dat");
   if (!in) {
       std::cerr << "Failed to open map.dat\n";
@@ -254,20 +262,20 @@ WorldMap::WorldMap() {
       int price, upgrade_price, fines[5];
       iss >> price >> upgrade_price;
       for (int i = 0; i < 5; ++i) iss >> fines[i];
-      units_.push_back(new UpgradableUnit(id++, name, price, upgrade_price, fines));
+      units_.push_back(new UpgradableUnit(id++, name, numPlayers, price, upgrade_price, fines));
     }
     else if (type == 'C') { // Handle Collectable type
-      int price, fine;
-      iss >> price >> fine;
-      units_.push_back(new CollectableUnit(id++, name, price, fine));
+      int price, unitFine;
+      iss >> price >> unitFine;
+      units_.push_back(new CollectableUnit(id++, name, numPlayers, price, unitFine));
     }
     else if (type == 'R') { // Handle RandomCost type
-      int price, fine_per_point;
-      iss >> price >> fine_per_point;
-      units_.push_back(new RandomCostUnit(id++, name, price, fine_per_point));
+      int price, finePerPoint;
+      iss >> price >> finePerPoint;
+      units_.push_back(new RandomCostUnit(id++, name, numPlayers, price, finePerPoint));
     }
     else if (type == 'J') { // Handle Jail type
-      units_.push_back(new JailUnit(id++, name));
+      units_.push_back(new JailUnit(id++, name, numPlayers));
     }
   }
 }
