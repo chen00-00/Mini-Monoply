@@ -45,8 +45,10 @@ std::string MapUnit::getPlayersHereString() const {
 
 const std::string MapUnit::display() const {
   std::ostringstream oss;
+  std::ostringstream id_stream;
+  id_stream << "[" << id_ << "]";
   oss << getPlayersHereString() << "  "
-      << "[" << id_ << "]"
+      << std::left << std::setw(5) << id_stream.str()
       << std::right << std::setw(10) << name_.substr(0, 10) << " ";
   return oss.str();
 }
