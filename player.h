@@ -17,16 +17,15 @@ public:
     Player(int id, const std::string& name);
     ~Player() {}
 
-    int getId() const;
+    const int getId() const;
     const std::string& getName() const;
-    int getMoney() const;
-    int getLocation() const;
-    PlayerStatus getStatus() const;
-    int getUnitCount() const;
-    int getNumCollectableUnits() const;
+    const int getMoney() const;
+    const int getLocation() const;
+    const PlayerStatus getStatus() const;
+    const int getUnitCount() const;
+    const int getNumCollectableUnits() const;
 
 
-    //void pay(Player* player, int amount);
     int pay(int amount);
     void receive(int amount);
     void moveTo(int new_location, WorldMap* map);
@@ -42,7 +41,7 @@ private:
     int location_ = 0;
     int money_ = 30000;
     std::vector<MapUnit*> owned_units_;
-    PlayerStatus status_ = PlayerStatus::Normal; // Normal, InJail, Bankruptcy
+    PlayerStatus status_ = PlayerStatus::Normal; // Normal, InJail, Bankrupt
 };
 
 // ================== World Player ==================
@@ -52,7 +51,7 @@ public:
   ~WorldPlayer();
 
   Player* playerNow(int index) const;
-  int getPlayerCount() const;
+  const int getPlayerCount() const;
 private:
   std::vector<Player*> players_;
 };

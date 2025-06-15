@@ -3,98 +3,110 @@
 
 #include <string>
 #include <vector>
-#include <memory>
 #include <iostream>
 
 // Forward declare Player class
 class Player;
-
 
 // ===== MapUnit (base class) =====
 class MapUnit {
 protected:
   int id_ = 0;
   std::string name_;
-  Player* host_ = nullptr;
-  std::vector<Player*> who_is_here_;
-
+  std::vector<Player*> playersHerePtrs_;
+  std::string getPlayersHereString() const;
 public:
-  MapUnit(int id, const std::string& name) : id_(id), name_(name) {}
+  MapUnit(int id, const std::string& name, int numPlayers);
   virtual ~MapUnit() = default;
 
   virtual void onVisit(Player* player) = 0;
-  virtual std::string type() const = 0;
+  virtual const std::string type() const = 0;
   virtual void reset() {}
-  virtual int getPrice() const { return 0; } // Universal price getter
+  virtual bool isPurchasable() const { return false; }
+  virtual const std::string display() const;
 
-  int getId() const { return id_; }
-  std::string getName() const { return name_; }
-  Player* getHost() const { return host_; }
-  void setHost(Player* p) { host_ = p; }
+  const int getId() const { return id_; }
+  const std::string getName() const { return name_; }
 
   void addPlayerHere(Player* p);
   void removePlayerHere(Player* p);
-  const std::vector<Player*>& getPlayersHere()const;
+  const std::vector<Player*>& getPlayersHere() const;
+};
+
+// ================== Purchasable Unit ====================
+class PurchasableUnit : public MapUnit {
+protected:
+    int price_ = 0;
+    Player* host_ = nullptr;
+    void tryToBuy(Player* player);
+public:
+    PurchasableUnit(int id, const std::string& name, int numPlayers, int price);
+    ~PurchasableUnit() = default;
+
+    bool isPurchasable() const override { return true; }
+    const std::string display() const override;
+
+    const int getPrice() const { return price_; }  
+    const Player* getHost() const { return host_; }
+    void setHost(Player* p) { host_ = p; }
 };
 
 
 // ================== Upgradable Unit ====================
-class UpgradableUnit : public MapUnit {
+class UpgradableUnit : public PurchasableUnit {
 private:
-  int price_ = 0;
   int upgrade_price_ = 0;
   int fines_[5] = {0};
-  int level_ = 0;
+  int level_ = 1;
 
 public:
-  UpgradableUnit(int id, const std::string& name, int price, int upgrade_price, const int* fines);
+  UpgradableUnit(int id, const std::string& name, int numPlayers, int price, int upgrade_price, const int* fines);
 
   void onVisit(Player* player) override;
-  std::string type() const override;
+  const std::string type() const override;
   void reset() override;
-  int getPrice() const override;
+  const std::string display() const override;
 
   void upgrade();
-  int getFine() const;
-  int getUpgradePrice() const;
-  int getLevel() const;
+  const int getFine() const;
+  const int getUpgradePrice() const;
+  const int getLevel() const;
 };
 
 // ================== Random Cost Unit ====================
-class RandomCostUnit : public MapUnit {
+class RandomCostUnit : public PurchasableUnit {
 private:
-  int price_ = 0;
-  int fine_per_point_ = 0;
+  int finePerPoint_ = 0;
 
 public:
-  RandomCostUnit(int id, const std::string& name, int price, int fine_per_point);
+  RandomCostUnit(int id, const std::string& name, int numPlayers, int price, int finePerPoint);
 
   void onVisit(Player* player) override;
-  std::string type() const override;
+  const std::string type() const override;
   void reset() override;
-  int getPrice() const override;
+  const std::string display() const override;
 };
 
 // ================== Collectable Unit ====================
-class CollectableUnit : public MapUnit {
+class CollectableUnit : public PurchasableUnit {
 private:
-    int price_ = 0;
-    int unit_fine_ = 0;
+    int unitFine_ = 0;
 
 public:
-    CollectableUnit(int id, const std::string& name, int price, int unit_fine);
+    CollectableUnit(int id, const std::string& name, int numPlayers, int price, int unitFine);
     void onVisit(Player* player) override;
-    std::string type() const override;
+    const std::string type() const override;
     void reset() override;
-    int getPrice() const override;
+    const std::string display() const override;
 };
 
 // ================== Jail Unit ====================
 class JailUnit : public MapUnit {
 public:
-    JailUnit(int id, const std::string& name);
+    JailUnit(int id, const std::string& name, int numPlayers);
     void onVisit(Player* player) override;
-    std::string type() const override;
+    const std::string type() const override;
+    const std::string display() const override;
 };
 
 // ================== World Map ====================
@@ -102,11 +114,11 @@ class WorldMap {
 private:
   std::vector<MapUnit*> units_;
 public:
-  WorldMap();
+  WorldMap(int numPlayers);
   ~WorldMap();
 
   MapUnit* getUnit(int index) const;
-  int getUnitCount() const;
+  const int getUnitCount() const;
 };
 
 #endif
