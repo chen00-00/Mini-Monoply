@@ -62,9 +62,12 @@ int main() {
         }
     }
 
+<<<<<<< HEAD
     // Create an instance of the WorldMap, which loads map data from "map.dat".
     WorldMap worldMap(numPlayers);
 
+=======
+>>>>>>> 89735f505a3045b4546f665e9d7b132c9692fb25
     // Create WorldPlayer for manage all players
     WorldPlayer players(numPlayers, defaultNames);
     // Place all players at the starting point (location 0).
@@ -89,7 +92,11 @@ int main() {
         // If the current player is bankrupt, skip their turn and move to the next player.
         if (currentPlayer->getStatus() == PlayerStatus::Bankrupt) {
             currentPlayerIndex = (currentPlayerIndex + 1) % numPlayers;
+<<<<<<< HEAD
             clearScreen();
+=======
+            clearScreen(); // Clear screen and update display for the next turn.
+>>>>>>> 89735f505a3045b4546f665e9d7b132c9692fb25
             displayBoard(worldMap, players);
             displayPlayerStatus(players, currentPlayerIndex);
             continue;
@@ -125,8 +132,14 @@ int main() {
 
         // Check if the player passed "GO" (crossed the starting point).
         if (newLocation < oldLocation) {
+<<<<<<< HEAD
             int reward = 2000; // Initialize reward to 2000.
             currentPlayer->receive(reward);
+=======
+            int reward = /*200*/0; // Initialize reward to 2000.
+            std::cout << currentPlayer->getName() << " passed GO and collects $" << reward << "!" << std::endl; // Passing start gives reward
+            currentPlayer->receive(reward); // Give the player the reward.
+>>>>>>> 89735f505a3045b4546f665e9d7b132c9692fb25
         }
         // Move the player to the new location on the map.
         currentPlayer->moveTo(newLocation, &worldMap);
@@ -165,18 +178,28 @@ int main() {
         displayPlayerStatus(players, currentPlayerIndex);
     }
 
+<<<<<<< HEAD
     std::cout << "The winner is determined!" ;
+=======
+    // 8. Announce Winner (This part would typically involve identifying the last active player)
+    std::cout << "The winner is determined!" << std::endl;
+>>>>>>> 89735f505a3045b4546f665e9d7b132c9692fb25
 
     return 0;
 }
 
 /* Clear the console screen */
 void clearScreen() {
+<<<<<<< HEAD
 #ifdef _WIN32
     system("cls");     // Windows
 #else
     system("clear");   // Linux/macOS
 #endif
+=======
+    // system("cls") is for Windows; use system("clear") for Linux/macOS.
+    system("clear");
+>>>>>>> 89735f505a3045b4546f665e9d7b132c9692fb25
 }
 
 // Rolls a dice and returns a random number between 1 and 6.
