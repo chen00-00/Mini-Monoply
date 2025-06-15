@@ -14,7 +14,7 @@ enum class PlayerStatus { Normal, InJail, Bankrupt };
 // ================== Player ==================
 class Player {
 public:
-    Player(int id, const std::string& name);
+    Player(int id = 0, const std::string& name = "nameless");
     ~Player() {}
 
     const int getId() const;
@@ -26,6 +26,7 @@ public:
     const int getNumCollectableUnits() const;
 
 
+    //void pay(Player* player, int amount);
     int pay(int amount);
     void receive(int amount);
     void moveTo(int new_location, WorldMap* map);
@@ -41,7 +42,7 @@ private:
     int location_ = 0;
     int money_ = 30000;
     std::vector<MapUnit*> owned_units_;
-    PlayerStatus status_ = PlayerStatus::Normal; // Normal, InJail, Bankrupt
+    PlayerStatus status_ = PlayerStatus::Normal; // Normal, InJail, Bankruptcy
 };
 
 // ================== World Player ==================

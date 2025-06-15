@@ -17,7 +17,6 @@ int rollDice();
 void waitForEnter();
 
 int main() {
-    // Seed the random number generator using the current time for varied dice rolls.
     srand(time(0));
 
     // 1. Game Setup
@@ -25,7 +24,7 @@ int main() {
     // Default names for players, used if the user doesn't input custom names.
     std::vector<std::string> defaultNames = {"A-Tu", "Little-Mei", "King-Baby", "Mrs.Money"};
 
-    clearScreen(); // Clear the console screen for a clean start.
+    clearScreen();
 
     // ==================== Handle text or numeric input logic ====================
     std::cout << "How many players?(Maximum:4)...>";
@@ -64,7 +63,7 @@ int main() {
     }
 
     // Create an instance of the WorldMap, which loads map data from "map.dat".
-    WorldMap worldMap(numPlayers); // Pass the number of players to the WorldMap constructor.
+    WorldMap worldMap(numPlayers);
 
     // Create WorldPlayer for manage all players
     WorldPlayer players(numPlayers, defaultNames);
@@ -80,17 +79,17 @@ int main() {
     displayPlayerStatus(players, 0);
 
     // 2. Main Game Loop
-    int currentPlayerIndex = 0; // Initialize currentPlayerIndex to 0.
-    int activePlayers = numPlayers; // Initialize activePlayers with the total number of players.
+    int currentPlayerIndex = 0;
+    int activePlayers = numPlayers;
 
     // The game loop continues until a specific condition (e.g., only one active player or exit choice) is met.
     while (true) {
-        Player* currentPlayer = players.playerNow(currentPlayerIndex); // Get the current player object.
+        Player* currentPlayer = players.playerNow(currentPlayerIndex);
 
         // If the current player is bankrupt, skip their turn and move to the next player.
         if (currentPlayer->getStatus() == PlayerStatus::Bankrupt) {
             currentPlayerIndex = (currentPlayerIndex + 1) % numPlayers;
-            clearScreen(); // Clear screen and update display for the next turn.
+            clearScreen();
             displayBoard(worldMap, players);
             displayPlayerStatus(players, currentPlayerIndex);
             continue;
@@ -99,7 +98,7 @@ int main() {
         // Prompt the current player for their action.
         std::cout << currentPlayer->getName() << ", your action? (1:Dice [default] / 2:Exit)...>";
         std::string choice = "";
-        std::getline(std::cin, choice); // Read player's choice.
+        std::getline(std::cin, choice);
 
         // If the player chooses to exit, break the game loop.
         if (choice == "2") {
@@ -110,26 +109,24 @@ int main() {
         if (currentPlayer->getStatus() == PlayerStatus::InJail) {
             std::cout << currentPlayer->getName() << " is in jail and misses a turn.";
             currentPlayer->releaseFromJail(); // Release them from jail for the next round.
-            waitForEnter(); // Wait for user to press Enter.
-            currentPlayerIndex = (currentPlayerIndex + 1) % numPlayers; // Move to the next player.
-            clearScreen(); // Clear screen and update display for the next turn.
+            waitForEnter();
+            currentPlayerIndex = (currentPlayerIndex + 1) % numPlayers;
+            clearScreen();
             displayBoard(worldMap, players);
             displayPlayerStatus(players, currentPlayerIndex);
             continue; // Skip the rest of the current player's turn.
         }
 
         // 4. Roll Dice and Move
-        int diceRoll = rollDice(); // Roll the dice to get a number between 1 and 6.
+        int diceRoll = rollDice();
 
-        int oldLocation = currentPlayer->getLocation(); // Get player's current location.
-        // Calculate new location, wrapping around the board if necessary.
+        int oldLocation = currentPlayer->getLocation();
         int newLocation = (oldLocation + diceRoll) % worldMap.getUnitCount();
 
         // Check if the player passed "GO" (crossed the starting point).
         if (newLocation < oldLocation) {
             int reward = 2000; // Initialize reward to 2000.
-            std::cout << currentPlayer->getName() << " passed GO and collects $" << reward << "!" << std::endl; // Passing start gives reward
-            currentPlayer->receive(reward); // Give the player the reward.
+            currentPlayer->receive(reward);
         }
         // Move the player to the new location on the map.
         currentPlayer->moveTo(newLocation, &worldMap);
@@ -146,13 +143,13 @@ int main() {
         currentUnit->onVisit(currentPlayer);
 
         // Check for bankruptcy after actions.
-        if (currentPlayer->getMoney() < 0) { // If player's money falls below zero, they are bankrupt.
+        if (currentPlayer->getMoney() < 0) {
             std::cout << std::endl << currentPlayer->getName() << " is bankrupt!";
-            currentPlayer->declareBankruptcy(); // Set player status to bankrupt and release all units.
-            activePlayers--; // Decrease the count of active players.
+            currentPlayer->declareBankruptcy();
+            activePlayers--;
         }
 
-        waitForEnter(); // Pause execution until user presses Enter.
+        waitForEnter();
 
         // Move to the next player in the turn order.
         currentPlayerIndex = (currentPlayerIndex + 1) % numPlayers;
@@ -168,10 +165,9 @@ int main() {
         displayPlayerStatus(players, currentPlayerIndex);
     }
 
-    // 8. Announce Winner (This part would typically involve identifying the last active player)
     std::cout << "The winner is determined!" << std::endl;
 
-    return 0; // End of the program.
+    return 0;
 }
 
 /* Clear the console screen */
@@ -185,14 +181,14 @@ void clearScreen() {
 
 // Rolls a dice and returns a random number between 1 and 6.
 int rollDice() {
-    return rand() % 6 + 1; // A random number in [1, 6]
+    return rand() % 6 + 1;
 }
 
 // Pauses execution until the user presses the Enter key.
 void waitForEnter() {
     std::cout << "\nPress Enter to continue...";
-    std::string dummy = ""; // Initialize dummy to empty string.
-    std::getline(std::cin, dummy); // Read and discard the input.
+    std::string dummy = "";
+    std::getline(std::cin, dummy);
 }
 
 
@@ -204,7 +200,7 @@ void displayBoard(const WorldMap& map, const WorldPlayer& players) {
     // Calculate half the size of the board for symmetrical display.
     int half_size = (map.getUnitCount() + 1) / 2;
 
-    int map_size = map.getUnitCount(); 
+    int map_size = map.getUnitCount();
     if (map.getUnitCount() % 2 == 1) {
         std::cout << std::setw(40) << std::left << map.getUnit(0)->display() << std::endl;
     }
@@ -234,7 +230,7 @@ void displayPlayerStatus(const WorldPlayer& players, int currentPlayerIndex) {
         else std::cout << "  ";
 
         std::cout << "[" << p->getId() << "]  " << std::setw(15) << std::right << p->getName().substr(0, 15)
-                  << "  $" << std::setw(6) << std::left << p->getMoney()
+                  << "  $" << std::setw(7) << std::left << p->getMoney()
                   << "with " << p->getUnitCount() << " units" << std::endl;
     }
     std::cout << std::endl;

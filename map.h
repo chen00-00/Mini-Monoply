@@ -46,7 +46,7 @@ public:
     bool isPurchasable() const override { return true; }
     const std::string display() const override;
 
-    const int getPrice() const { return price_; }  
+    const int getPrice() const { return price_; }
     const Player* getHost() const { return host_; }
     void setHost(Player* p) { host_ = p; }
 };

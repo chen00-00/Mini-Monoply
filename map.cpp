@@ -5,8 +5,8 @@
 #include <iostream>
 #include <cstdlib>
 #include <string>
-#include <iomanip> 
- 
+#include <iomanip>
+
 // ===== MapUnit (base class) =====
 MapUnit::MapUnit(int id, const std::string& name, int numPlayers)
 : id_(id), name_(name), playersHerePtrs_(numPlayers, nullptr) {}
@@ -46,8 +46,8 @@ std::string MapUnit::getPlayersHereString() const {
 const std::string MapUnit::display() const {
   std::ostringstream oss;
   oss << getPlayersHereString() << "  "
-      << "[" << id_ << "] "
-      << std::right << std::setw(8) << name_ << " ";
+      << "[" << id_ << "]"
+      << std::right << std::setw(10) << name_.substr(0, 10) << " ";
   return oss.str();
 }
 
@@ -59,14 +59,14 @@ PurchasableUnit::PurchasableUnit(int id, const std::string& name, int numPlayers
 
 void PurchasableUnit::tryToBuy(Player* player) {
   int price = getPrice();
-  if (player->getMoney() >= price) { // If the player has enough money to buy.
+  if (player->getMoney() >= price) {
     std::cout << player->getName() << ", do you want to buy " << getName() << "? (1: Yes [default] / 2: No) ...>";
-    std::string buy_choice = ""; // Initialize buy_choice to empty string.
-    std::getline(std::cin, buy_choice); // Get player's choice to buy.
-    if (buy_choice != "2") { // If player chooses to buy (or presses Enter for default Yes).
-        player->pay(price); // Player pays the price.
-        player->addUnit(this); // Add the unit to the player's owned units.
-        setHost(player); // Set the host of the unit to the player
+    std::string buy_choice = "";
+    std::getline(std::cin, buy_choice);
+    if (buy_choice != "2") {
+        player->pay(price);
+        player->addUnit(this);
+        setHost(player);
         std::cout << "You pay $" << price << " to buy " << getName();
     }
   }
@@ -76,8 +76,8 @@ const std::string PurchasableUnit::display() const {
   std::ostringstream oss;
   oss << MapUnit::display();
   if (!host_) {
-      oss << std::setw(4) << ""; 
-      oss << std::setw(3) << std::left << "B$";
+      oss << std::setw(4) << "";
+      oss << "B$";
       oss << std::setw(5) << std::right << price_;
   } else {
       std::string host_str = "{" + std::to_string(host_->getId()) + "}";
@@ -107,20 +107,20 @@ void UpgradableUnit::onVisit(Player* player) {
   }
   else if (host_ == player) {
     // upgrade if the owner is the same as the visiting player
-    if (getLevel() < 5) { // Maximum level is 5.
+    if (getLevel() < 5) {
       int upgrade_price = getUpgradePrice();
-      if (player->getMoney() >= upgrade_price) { // If the player has enough money to upgrade.
+      if (player->getMoney() >= upgrade_price) {
            std::cout << player->getName() << ", do you want to upgrade " << getName() << "? (1: Yes [default] / 2: No)...>";
-           std::string upgrade_choice = ""; // Initialize upgrade_choice to empty string.
-           std::getline(std::cin, upgrade_choice); // Get player's choice to upgrade.
-           if(upgrade_choice != "2") { // If player chooses to upgrade.
-              player->pay(upgrade_price); // Player pays the upgrade price.
-              upgrade(); // Upgrade the unit's level.
+           std::string upgrade_choice = "";
+           std::getline(std::cin, upgrade_choice);
+           if(upgrade_choice != "2") {
+              player->pay(upgrade_price);
+              upgrade();
               std::cout << "You pay $" << upgrade_price << " to upgrade " << getName() << " to Lv." << getLevel();
            }
       }
     }
-    else { // If unit->getLevel() is 5, it's already at max level.
+    else {
       std::cout << player->getName() << ", your " << getName() << " already reaches the highest level!";
     }
   }
@@ -141,11 +141,10 @@ const std::string UpgradableUnit::display() const {
     if (level_ == 5) {
       oss << std::setw(3) << std::left << "L5";
     } else {
-      oss << std::setw(3) << std::left << "U$";
+      oss << "U$";
       oss << std::setw(5) << std::right << upgrade_price_;
-      oss << std::setw(2) << "";
-      oss << "L" << level_;
-      
+      oss << " L" << level_;
+
     }
   }
   return oss.str();
@@ -236,7 +235,7 @@ const std::string JailUnit::type() const { return "J"; }
 const std::string JailUnit::display() const {
   std::ostringstream oss;
   oss << MapUnit::display();
-  oss << std::setw(4) << ""; 
+  oss << std::setw(4) << "";
   oss << std::setw(3) << std::left << "J";
   return oss.str();
 }
@@ -250,7 +249,7 @@ WorldMap::WorldMap(int numPlayers) {
   }
 
   std::string line;
-  int id = 0; // Start IDs from 0 to match vector indices
+  int id = 0;
 
   while (std::getline(in, line)) {
     std::istringstream iss(line);
