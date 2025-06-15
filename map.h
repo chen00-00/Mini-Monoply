@@ -22,7 +22,6 @@ public:
   virtual void onVisit(Player* player) = 0;
   virtual const std::string type() const = 0;
   virtual void reset() {}
-  virtual bool isPurchasable() const { return false; }
   virtual const std::string display() const;
 
   const int getId() const { return id_; }
@@ -43,7 +42,6 @@ public:
     PurchasableUnit(int id, const std::string& name, int numPlayers, int price);
     ~PurchasableUnit() = default;
 
-    bool isPurchasable() const override { return true; }
     const std::string display() const override;
 
     const int getPrice() const { return price_; }
